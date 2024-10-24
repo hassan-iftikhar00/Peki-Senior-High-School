@@ -1,21 +1,326 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Inter", sans-serif;
+  background-color: #f0f0f0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+}
+
+.card {
+  background-color: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 260px;
+  padding: 20px;
+  text-align: center;
+  min-height: 450px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.logo {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 16px;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+}
+
+h1 {
+  color: #008751;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+}
+
+h2 {
+  color: #666;
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0 0 16px 0;
+}
+
+input {
+  width: 80%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: 8px;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+  background-color: #f0f0f0;
+}
+
+button {
+  width: 80%;
+  background-color: #1a1a2e;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+}
+
+.hint {
+  font-size: 12px;
+  text-align: left;
+  margin-bottom: 16px;
+  width: 80%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hint .red-text {
+  color: #ff0000;
+}
+
+footer {
+  color: #666;
+  font-size: 12px;
+  margin-top: 16px;
+}
+
+.error-popup {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  text-align: left;
+  min-width: 250px;
+  max-width: 80%;
+}
+
+.error-popup h3 {
+  color: #ff3b30;
+  margin-top: 0;
+  font-size: 18px;
+  text-align: left;
+}
+
+.error-popup p {
+  margin-bottom: 0;
+  color: #333;
+  font-size: 14px;
+}
+
+.invalid-index-popup {
+  background-color: #ffebee;
+}
+
+.invalid-index-popup h3 {
+  color: #ff3b30;
+}
+
+.invalid-index-popup p {
+  color: #333;
+}
+
+.applicant-popup {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+}
+
+.popup {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 450px;
+  overflow: hidden;
+}
+
+.popup-header {
+  background-color: #e6f7e6;
+  padding: 16px;
+  padding-right: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.popup-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #008751;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  margin-left: auto;
+  margin-right: -8px;
+}
+
+.popup-content {
+  padding: 24px;
+}
+
+.applicant-info {
+  margin-bottom: 16px;
+}
+
+.applicant-info p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.warning-box {
+  background-color: #ffebee;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.warning-text {
+  color: #ff0000;
+  font-size: 14px;
+  margin: 0;
+}
+
+.phone-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+}
+
+.buy-button {
+  width: 100%;
+  background-color: #808080;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: not-allowed;
+  opacity: 0.5;
+  transition: background-color 0.3s, opacity 0.3s, cursor 0.3s;
+}
+
+.buy-button.active {
+  background-color: #1a1a1a;
+  opacity: 1;
+  cursor: pointer;
+}
+
+.popup-footer {
+  background-color: #f5f5f5;
+  padding: 12px;
+  text-align: center;
+}
+
+.footer-text {
+  color: #666;
+  font-size: 12px;
+  margin: 0;
+}
+
+.recover-link {
+  color: #666;
+  text-decoration: none;
+  font-size: 14px;
+  margin-top: 16px;
+  display: inline-block;
+}
+
+.recover-link:hover {
+  text-decoration: underline;
+}
+
+.recover-popup {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.recover-popup .popup {
+  max-width: 300px;
+  padding: 20px;
+}
+
+.recover-popup .popup-title {
+  font-size: 22px;
+  color: #000000;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.recover-popup input {
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  text-align: left;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+  padding-left: 12px;
+}
+
+.recover-popup .button-group {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.recover-popup .button-group button {
+  flex: 1;
+  margin: 0;
+  border-radius: 25px;
+  background-color: #000000;
+  color: white;
+  border: none;
+  padding: 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.recover-popup .note {
+  font-size: 14px;
+  color: #666;
+  margin-top: 16px;
+  text-align: left;
 }
