@@ -144,10 +144,10 @@ export default function Submit({
           </label>
         </div>
 
-        <div className="action-buttons">
+        <div className="">
           <button
             type="submit"
-            className="action-button primary"
+            className="upload-button submit-btn"
             disabled={!isDeclarationChecked || isPending} // Disable button during pending state
           >
             Submit Application
