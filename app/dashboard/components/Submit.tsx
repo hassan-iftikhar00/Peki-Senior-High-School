@@ -8,7 +8,8 @@ interface ApplicantData {
   residence: string;
   programme: string;
   nhisNo: string;
-  passportPhoto: string; // Ensure this field exists
+  passportPhoto: string;
+  phoneNumber?: string;
 }
 
 interface GuardianData {
@@ -43,15 +44,15 @@ interface UploadStatus {
 }
 
 interface SubmitProps {
-  applicantData: ApplicantData; // Accept applicant data as props
-  guardianData: GuardianData; // Accept guardian data as props
-  additionalData: AdditionalInfoData; // Accept additional info data as props
-  academicData: AcademicData; // Accept academic data as props
+  applicantData: ApplicantData;
+  guardianData: GuardianData;
+  additionalData: AdditionalInfoData;
+  academicData: AcademicData;
   houseData: {
     gender: string;
     houseAssigned: string;
-  }; // Accept house data as props
-  uploadStatus: UploadStatus; // Accept upload status as props
+  };
+  uploadStatus: UploadStatus;
 }
 
 export default function Submit({
@@ -64,29 +65,102 @@ export default function Submit({
 }: SubmitProps) {
   const [isDeclarationChecked, setIsDeclarationChecked] = useState(false);
   const [submissionMessage, setSubmissionMessage] = useState("");
-  const [isPending, setIsPending] = useState(false); // Track submission status
+  const [submissionStatus, setSubmissionStatus] = useState<
+    "PENDING" | "SUBMITTED" | "FAILED"
+  >("PENDING");
+  const [isPending, setIsPending] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [isFormSubmitted, setIsFormSubmitted] = useState(false);
+
+  const validateRequiredFields = () => {
+    const newErrors: string[] = [];
+
+    // Check ApplicantData
+    if (!applicantData.nhisNo) newErrors.push("NHIS Number is required");
+    if (!applicantData.passportPhoto)
+      newErrors.push("Passport Photo is required");
+
+    // Check GuardianData
+    if (!guardianData.guardianName) newErrors.push("Guardian Name is required");
+    if (!guardianData.relationship)
+      newErrors.push("Guardian Relationship is required");
+    if (!guardianData.phoneNumber)
+      newErrors.push("Guardian Phone Number is required");
+
+    // Check AdditionalInfoData
+    if (!additionalData.presentAddress)
+      newErrors.push("Present Address is required");
+    if (!additionalData.nationality) newErrors.push("Nationality is required");
+    if (!additionalData.homeTown) newErrors.push("Home Town is required");
+    if (!additionalData.religion) newErrors.push("Religion is required");
+    if (!additionalData.previousSchool)
+      newErrors.push("Previous School is required");
+    if (!additionalData.beceYear) newErrors.push("BECE Year is required");
+
+    // Check AcademicData
+    if (!academicData.selectedClass)
+      newErrors.push("Class selection is required");
+    if (academicData.electiveSubjects.length === 0)
+      newErrors.push("At least one elective subject is required");
+
+    // Check UploadStatus
+    if (uploadStatus.placementForm === "Not uploaded")
+      newErrors.push("Placement Form is required");
+    if (uploadStatus.nhisCard === "Not uploaded")
+      newErrors.push("NHIS Card is required");
+    if (uploadStatus.idDocument === "Not uploaded")
+      newErrors.push("ID Document is required");
+
+    return newErrors;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsPending(true); // Set to pending when submitting
+    setIsFormSubmitted(true);
+    setIsPending(true);
+    setErrors([]);
+    setSubmissionStatus("PENDING");
 
-    // Prepare the candidate data to be sent
+    const validationErrors = validateRequiredFields();
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      setIsPending(false);
+      setSubmissionStatus("FAILED");
+      return;
+    }
+
+    if (!isDeclarationChecked) {
+      setErrors(["Please check the declaration before submitting."]);
+      setIsPending(false);
+      setSubmissionStatus("FAILED");
+      return;
+    }
+
     const candidateData = {
-      applicant: {
-        ...applicantData,
-        uploads: {
-          placementForm: uploadStatus.placementForm,
-          nhisCard: uploadStatus.nhisCard,
-          idDocument: uploadStatus.idDocument,
-          medicalRecords: uploadStatus.medicalRecords,
-        },
-      },
-      guardian: guardianData,
+      fullName: applicantData.fullName,
+      indexNumber: applicantData.indexNumber,
+      gender: applicantData.gender,
+      aggregate: applicantData.aggregate,
+      residence: applicantData.residence,
+      programme: applicantData.programme,
+      nhisNo: applicantData.nhisNo,
+      passportPhoto: applicantData.passportPhoto,
+      phoneNumber: applicantData.phoneNumber || "",
+      guardianInfo: guardianData,
       additionalInfo: additionalData,
-      academic: academicData,
+      academicInfo: {
+        ...academicData,
+        classCapacity: parseInt(academicData.classCapacity) || 0,
+      },
       house: houseData,
+      uploads: uploadStatus,
     };
-    console.log(candidateData);
+
+    console.log(
+      "Submitting candidate data:",
+      JSON.stringify(candidateData, null, 2)
+    );
+
     try {
       const response = await fetch("/api/candidate", {
         method: "POST",
@@ -96,16 +170,21 @@ export default function Submit({
         body: JSON.stringify(candidateData),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        setSubmissionMessage("Application submitted successfully!");
+        setSubmissionMessage(data.message);
+        setSubmissionStatus("SUBMITTED");
       } else {
-        setSubmissionMessage("Failed to submit application.");
+        setSubmissionMessage(`Failed to submit application: ${data.error}`);
+        setSubmissionStatus("FAILED");
       }
     } catch (error) {
       console.error("Submission error:", error);
       setSubmissionMessage("An error occurred during submission.");
+      setSubmissionStatus("FAILED");
     } finally {
-      setIsPending(false); // Reset pending state after submission
+      setIsPending(false);
     }
   };
 
@@ -116,14 +195,24 @@ export default function Submit({
         Review your information before submitting!
       </p>
       {submissionMessage && (
-        <p id="applicationStatus" className="application-status">
-          Application Status:{" "}
-          {submissionMessage === "Application submitted successfully!"
-            ? "SUBMITTED"
-            : isPending
-            ? "PENDING"
-            : "FAILED"}
+        <p
+          id="applicationStatus"
+          className={`application-status ${submissionStatus.toLowerCase()}`}
+        >
+          Application Status: {submissionStatus}
+          <br />
+          {submissionMessage}
         </p>
+      )}
+      {errors.length > 0 && (
+        <div className="error-messages">
+          <p>Please correct the following errors:</p>
+          <ul>
+            {errors.map((error, index) => (
+              <li key={index}>{error}</li>
+            ))}
+          </ul>
+        </div>
       )}
       <form onSubmit={handleSubmit}>
         <div>
@@ -137,7 +226,11 @@ export default function Submit({
                 checked={isDeclarationChecked}
                 onChange={(e) => setIsDeclarationChecked(e.target.checked)}
               />
-              <span>
+              <span
+                className={
+                  isFormSubmitted && !isDeclarationChecked ? "text-red-500" : ""
+                }
+              >
                 I declare that all the information provided is true and correct
               </span>
             </div>
@@ -148,15 +241,12 @@ export default function Submit({
           <button
             type="submit"
             className="upload-button submit-btn"
-            disabled={!isDeclarationChecked || isPending} // Disable button during pending state
+            disabled={isPending}
           >
-            Submit Application
+            {isPending ? "Submitting..." : "Submit Application"}
           </button>
         </div>
       </form>
-      {submissionMessage && (
-        <p className="submission-message">{submissionMessage}</p>
-      )}
     </div>
   );
 }

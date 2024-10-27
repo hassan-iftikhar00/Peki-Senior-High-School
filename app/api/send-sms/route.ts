@@ -1,54 +1,93 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const CLIENT_ID = "gukisadt";
-const CLIENT_SECRET = "ulapfgeb";
-const API_URL =
-  "https://sms.hubtel.com/v1/messages/send?clientsecret=ulapfgeb&clientid=gukisadt&from=PekiSHS&to=&content=This+Is+A+Test+Message";
-const SENDER_ID = "PacketsOut";
+const CLIENT_ID = "jziuefzr";
+const CLIENT_SECRET = "fevmnxnq";
+const API_URL = "https://sms.hubtel.com/v1/messages/send";
+const SENDER_ID = "PekiSHS";
+
+if (!CLIENT_ID || !CLIENT_SECRET) {
+  throw new Error("Missing Hubtel credentials in environment variables");
+}
 
 export async function POST(request: NextRequest) {
   try {
     const { to, content } = await request.json();
 
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization:
-          "Basic " +
-          Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64"),
-      },
-      body: JSON.stringify({
-        from: SENDER_ID,
-        to: to,
-        content: content,
-      }),
-    });
+    console.log("Received SMS request - To:", to, "Content:", content);
 
-    const responseData = await response.json();
-
-    if (!response.ok) {
-      console.error("Failed to send SMS:", responseData);
-
-      if (responseData.status === 12) {
-        return NextResponse.json(
-          {
-            error:
-              "SMS service account requires payment. Please contact the administrator.",
-          },
-          { status: 402 }
-        );
-      }
-
+    if (!to || !content) {
+      console.error("Missing recipient phone number or message content");
       return NextResponse.json(
-        { error: "Failed to send SMS", details: responseData },
-        { status: response.status }
+        {
+          success: false,
+          error: "Recipient phone number and message content are required.",
+        },
+        { status: 400 }
       );
     }
 
-    return NextResponse.json({ success: true, data: responseData });
+    const params = new URLSearchParams();
+    params.append("clientid", CLIENT_ID);
+    params.append("clientsecret", CLIENT_SECRET);
+    params.append("from", SENDER_ID);
+    params.append("to", to);
+    params.append("content", content);
+
+    const url = `${API_URL}?${params.toString()}`;
+
+    console.log("Hubtel API URL:", url);
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { "Cache-Control": "no-cache" },
+    });
+
+    console.log("Hubtel API Response Status:", response.status);
+    console.log(
+      "Hubtel API Response Headers:",
+      Object.fromEntries(response.headers.entries())
+    );
+
+    const responseText = await response.text();
+    console.log("Hubtel API Response Text:", responseText);
+
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (error) {
+      console.error("Failed to parse Hubtel API response:", error);
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid response from SMS provider",
+          rawResponse: responseText,
+        },
+        { status: 500 }
+      );
+    }
+
+    console.log(
+      "Hubtel API Response Data:",
+      JSON.stringify(responseData, null, 2)
+    );
+
+    if (responseData.status !== 0) {
+      console.error("Failed to send SMS:", responseData);
+      return NextResponse.json(
+        { success: false, error: "Failed to send SMS", details: responseData },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      messageId: responseData.messageId,
+    });
   } catch (error) {
     console.error("Error sending SMS:", error);
-    return NextResponse.json({ error: "Error sending SMS" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Error sending SMS" },
+      { status: 500 }
+    );
   }
 }

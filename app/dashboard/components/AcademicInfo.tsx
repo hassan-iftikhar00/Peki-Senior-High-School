@@ -21,8 +21,22 @@ interface AcademicData {
   electiveSubjects: string[];
 }
 
-interface ApplicantData {
-  academicData: AcademicData;
+interface AcademicInfoProps {
+  programme: string;
+  academicInfo: AcademicData;
+  setAcademicData: (
+    field: keyof AcademicData,
+    value: string | string[]
+  ) => void;
+}
+
+interface ApiResponse {
+  occupancy?: {
+    [programme: string]: {
+      [className: string]: number;
+    };
+  };
+  error?: string;
 }
 
 const programClasses: ProgramClasses = {
@@ -64,7 +78,14 @@ const programElectives: ProgramElectives = {
   ],
 };
 
-const classCapacities: ClassCapacities = {
+const coreSubjectsForAllPrograms = [
+  "English Language",
+  "Core Mathematics",
+  "Integrated Science",
+  "Social Studies",
+];
+
+const initialClassCapacities: ClassCapacities = {
   "General Arts": { "Form 1 Arts": 50, "Form 2 Arts": 50, "Form 3 Arts": 50 },
   "General Science": { "G. Sci A": 45, "G. Sci B": 0 },
   Business: {
@@ -84,67 +105,89 @@ const classCapacities: ClassCapacities = {
   },
 };
 
-interface AcademicInfoProps {
-  programme: string;
-  setAcademicData: React.Dispatch<React.SetStateAction<AcademicData>>;
-}
-
 export default function AcademicInfo({
   programme,
+  academicInfo,
   setAcademicData,
 }: AcademicInfoProps) {
-  const [selectedClass, setSelectedClass] = useState<string>("");
-  const [classCapacity, setClassCapacity] = useState<string>("");
-  const [coreSubjects, setCoreSubjects] = useState<string[]>([
-    "English Language",
-    "Core Mathematics",
-    "Social Studies",
-    "Integrated Science",
-  ]);
-  const [selectedElectives, setSelectedElectives] = useState<string[]>([]);
+  const [selectedClass, setSelectedClass] = useState<string>(
+    academicInfo.selectedClass
+  );
+  const [classCapacity, setClassCapacity] = useState<string>(
+    academicInfo.classCapacity
+  );
+  const [coreSubjects, setCoreSubjects] = useState<string[]>(
+    academicInfo.coreSubjects.length > 0
+      ? academicInfo.coreSubjects
+      : coreSubjectsForAllPrograms
+  );
+  const [selectedElectives, setSelectedElectives] = useState<string[]>(
+    academicInfo.electiveSubjects
+  );
+  const [classCapacities, setClassCapacities] = useState<ClassCapacities>(
+    initialClassCapacities
+  );
 
   useEffect(() => {
-    setSelectedClass("");
-    setClassCapacity("");
-    setSelectedElectives([]);
-  }, [programme]);
+    setSelectedClass(academicInfo.selectedClass);
+    setClassCapacity(academicInfo.classCapacity);
+    setCoreSubjects(
+      academicInfo.coreSubjects.length > 0
+        ? academicInfo.coreSubjects
+        : coreSubjectsForAllPrograms
+    );
+    setSelectedElectives(academicInfo.electiveSubjects);
+  }, [academicInfo]);
+
+  useEffect(() => {
+    fetchClassOccupancy();
+  }, []);
+
+  const fetchClassOccupancy = async () => {
+    try {
+      const response = await fetch("/api/class-occupancy");
+      const data: ApiResponse = await response.json();
+
+      if (data.occupancy) {
+        const updatedCapacities = { ...initialClassCapacities };
+        Object.entries(data.occupancy).forEach(([prog, classes]) => {
+          if (updatedCapacities[prog]) {
+            Object.entries(classes).forEach(([className, occupancy]) => {
+              if (updatedCapacities[prog][className] !== undefined) {
+                updatedCapacities[prog][className] -= occupancy;
+                if (updatedCapacities[prog][className] < 0)
+                  updatedCapacities[prog][className] = 0;
+              }
+            });
+          }
+        });
+        setClassCapacities(updatedCapacities);
+      }
+    } catch (error) {
+      console.error("Error fetching class occupancy:", error);
+    }
+  };
 
   const handleClassChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedClass = e.target.value;
     setSelectedClass(selectedClass);
 
-    const capacity =
-      classCapacities[programme][
-        selectedClass as keyof (typeof classCapacities)[typeof programme]
-      ];
-    setClassCapacity(
-      capacity > 0 ? `${capacity} seats left` : "Class capacity is full"
-    );
+    const capacity = classCapacities[programme]?.[selectedClass] ?? 0;
+    const capacityString =
+      capacity > 0 ? `${capacity} seats left` : "Class capacity is full";
+    setClassCapacity(capacityString);
+    setAcademicData("selectedClass", selectedClass);
+    setAcademicData("classCapacity", capacityString);
   };
 
   const handleElectiveChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setSelectedElectives((prev) =>
-      prev.includes(value)
-        ? prev.filter((elective) => elective !== value)
-        : [...prev, value]
-    );
+    const updatedElectives = selectedElectives.includes(value)
+      ? selectedElectives.filter((elective) => elective !== value)
+      : [...selectedElectives, value];
+    setSelectedElectives(updatedElectives);
+    setAcademicData("electiveSubjects", updatedElectives);
   };
-
-  useEffect(() => {
-    setAcademicData({
-      selectedClass,
-      classCapacity,
-      coreSubjects,
-      electiveSubjects: selectedElectives,
-    });
-  }, [
-    selectedClass,
-    classCapacity,
-    coreSubjects,
-    selectedElectives,
-    setAcademicData,
-  ]);
 
   return (
     <div id="academic" className="section">
@@ -175,7 +218,7 @@ export default function AcademicInfo({
               {programClasses[programme]?.map((className) => (
                 <option key={className} value={className}>
                   {className} (
-                  {classCapacities[programme][className] > 0
+                  {classCapacities[programme]?.[className] > 0
                     ? classCapacities[programme][className] + " seats left"
                     : "Full"}
                   )
@@ -224,6 +267,7 @@ export default function AcademicInfo({
                   id={subject.toLowerCase().replace(/\s+/g, "-")}
                   name="electiveSubject"
                   value={subject}
+                  checked={selectedElectives.includes(subject)}
                   onChange={handleElectiveChange}
                 />
                 <label htmlFor={subject.toLowerCase().replace(/\s+/g, "-")}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import VerifyIndexPage from "../components/VerifyIndexPage";
 import ApplicantLoginPage from "../components/ApplicantLoginPage";
@@ -8,6 +8,15 @@ import EmptyErrorPopup from "../components/EmptyErrorPopup";
 import InvalidIndexPopup from "../components/InvalidIndexPopup";
 import ApplicantPopup from "../components/ApplicantPopup";
 import RecoverLoginPopup from "../components/RecoverLoginPopup";
+
+interface CandidateInfo {
+  fullName: string;
+  indexNumber: string;
+  programme: string;
+  gender: string;
+  residence: string;
+  aggregate: number;
+}
 
 export default function Home() {
   const [showVerifyIndex, setShowVerifyIndex] = useState(true);
@@ -18,103 +27,128 @@ export default function Home() {
   const [showRecoverPopup, setShowRecoverPopup] = useState(false);
   const [verifiedIndexNumber, setVerifiedIndexNumber] = useState("");
   const [verifiedPhoneNumber, setVerifiedPhoneNumber] = useState("");
-
+  const [candidateInfo, setCandidateInfo] = useState<CandidateInfo | null>(
+    null
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = document.cookie.replace(
+        /(?:(?:^|.*;\s*)token\s*\=\s*([^;]*).*$)|^.*$/,
+        "$1"
+      );
+      if (token) {
+        try {
+          const response = await fetch("/api/verify-token", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (response.ok) {
+            router.push("/dashboard");
+          } else {
+            // Token is invalid, remove it
+            document.cookie =
+              "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+          }
+        } catch (error) {
+          console.error("Error verifying token:", error);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    checkAuth();
+  }, [router]);
 
   const handleVerify = async (indexNumber: string) => {
     if (indexNumber.trim() === "") {
       setShowEmptyError(true);
       setTimeout(() => setShowEmptyError(false), 5000);
-    } else {
-      try {
-        const response = await fetch("/api/verify", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ indexNumber }),
-        });
+      return;
+    }
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.verified) {
-            setVerifiedIndexNumber(indexNumber);
-            setShowApplicantPopup(true);
-          } else {
-            setShowInvalidIndex(true);
-            setTimeout(() => setShowInvalidIndex(false), 5000);
-          }
-        } else {
-          setShowInvalidIndex(true);
-          setTimeout(() => setShowInvalidIndex(false), 5000);
-        }
-      } catch (error) {
-        console.error("Error verifying index number:", error);
+    try {
+      const response = await fetch("/api/verify", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ indexNumber }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.verified) {
+        setVerifiedIndexNumber(indexNumber);
+        setCandidateInfo(data.candidateInfo);
+        setShowApplicantPopup(true);
+        setShowVerifyIndex(false);
+      } else {
         setShowInvalidIndex(true);
         setTimeout(() => setShowInvalidIndex(false), 5000);
       }
+    } catch (error) {
+      console.error("Error verifying index number:", error);
+      setShowInvalidIndex(true);
+      setTimeout(() => setShowInvalidIndex(false), 5000);
     }
   };
 
-  const handleBuyVoucher = async (phoneNumber: string) => {
-    setVerifiedPhoneNumber(phoneNumber);
-    const formattedPhoneNumber = `+233${phoneNumber.slice(1)}`;
-
+  const handleLogin = async (
+    indexNumber: string,
+    serial: string,
+    pin: string
+  ) => {
     try {
-      // Call the payment API
-      const paymentResponse = await fetch("/api/payment", {
+      console.log("Attempting login...");
+      const response = await fetch("/api/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ phoneNumber }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ indexNumber, serial, pin }),
       });
 
-      if (!paymentResponse.ok) {
-        throw new Error("Payment failed");
-      }
+      const data = await response.json();
 
-      // Call the SMS notification API
-      const message = `Your login credentials have been sent to this number.`;
-      const smsResponse = await fetch("/api/send-sms", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ to: formattedPhoneNumber, content: message }),
-      });
+      if (data.success) {
+        console.log("Login successful, received token:", data.token);
 
-      if (!smsResponse.ok) {
-        const errorData = await smsResponse.json();
-        if (smsResponse.status === 402) {
-          throw new Error(errorData.error);
-        } else {
-          throw new Error("Failed to send SMS");
-        }
-      }
+        // Explicitly set the token as a cookie
+        document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Strict`;
+        console.log("Token set in cookie:", document.cookie);
 
-      // If both requests are successful
-      setShowApplicantPopup(false);
-      setShowVerifyIndex(false);
-      setShowApplicantLogin(true);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("Error during voucher purchase:", error.message);
-        alert("Error purchasing voucher: " + error.message);
+        // Store token in localStorage as a backup
+        localStorage.setItem("token", data.token);
+        console.log("Token stored in localStorage");
+
+        // Add a small delay before redirecting to ensure the cookie is set
+        setTimeout(() => {
+          console.log("Redirecting to dashboard...");
+          router.push("/dashboard");
+        }, 1000);
       } else {
-        console.error("An unknown error occurred:", error);
-        alert("Error purchasing voucher: An unknown error occurred.");
+        console.error("Login failed:", data.error);
+        setError(data.error || "Invalid credentials. Please try again.");
       }
+    } catch (error) {
+      console.error("Login error:", error);
+      setError("An error occurred during login. Please try again.");
     }
   };
 
-  const handleRecoverLink = () => {
-    setShowRecoverPopup(true);
+  const showLogin = () => {
+    setShowApplicantLogin(true);
+    setShowVerifyIndex(false);
+    setShowApplicantPopup(false);
   };
+
+  const handleRecoverLink = () => setShowRecoverPopup(true);
 
   const handleRecoverLoad = (indexNumber: string) => {
     if (indexNumber === verifiedIndexNumber) {
-      // Simulate loading serial and PIN
       setShowRecoverPopup(false);
       setShowApplicantLogin(true);
     } else {
@@ -132,14 +166,35 @@ export default function Home() {
     }
   };
 
-  const handleLogin = (indexNumber: string, pin: string) => {
-    // Simulate login process
-    if (indexNumber === verifiedIndexNumber && pin === "1234") {
-      router.push("/dashboard");
-    } else {
-      alert("Invalid credentials");
+  const handleBuyVoucher = async (phoneNumber: string) => {
+    setVerifiedPhoneNumber(phoneNumber);
+    try {
+      const response = await fetch("/api/initiate-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phoneNumber, indexNumber: verifiedIndexNumber }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        window.location.href = data.paymentUrl;
+      } else {
+        alert("Failed to initiate payment. Please try again.");
+      }
+    } catch (error) {
+      console.error("Payment initiation error:", error);
+      alert("An error occurred while initiating payment. Please try again.");
     }
   };
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (isAuthenticated) {
+    return null;
+  }
 
   return (
     <main>
@@ -152,9 +207,14 @@ export default function Home() {
       )}
       {showEmptyError && <EmptyErrorPopup />}
       {showInvalidIndex && <InvalidIndexPopup />}
-      {showApplicantPopup && (
+      {showApplicantPopup && candidateInfo && (
         <ApplicantPopup
-          onClose={() => setShowApplicantPopup(false)}
+          onClose={() => {
+            setShowApplicantPopup(false);
+            setShowVerifyIndex(true);
+          }}
+          candidateInfo={candidateInfo}
+          showLogin={showLogin}
           onBuyVoucher={handleBuyVoucher}
         />
       )}

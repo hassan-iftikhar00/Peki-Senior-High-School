@@ -27,7 +27,7 @@ export default function Sidebar() {
           </a>
         </li>
         <li>
-          <a href="#personal-i nfo">
+          <a href="#personal-info">
             <span>👤</span> Personal Info.
           </a>
         </li>

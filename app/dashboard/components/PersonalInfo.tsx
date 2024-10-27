@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
+import { uploadToCloudinary } from "@/app/utils/cloudinary";
 
 interface ApplicantData {
   fullName: string;
@@ -11,36 +12,53 @@ interface ApplicantData {
   nhisNo: string;
   houseAssigned: string;
   passportPhoto: string;
+  phoneNumber: string;
 }
+
 interface PersonalInfoProps {
   applicantData: ApplicantData;
-  setApplicantData: React.Dispatch<React.SetStateAction<ApplicantData>>;
+  onChange: (field: keyof ApplicantData, value: string) => void;
 }
 
 export default function PersonalInfo({
   applicantData,
-  setApplicantData,
+  onChange,
 }: PersonalInfoProps) {
-  const [passportPhoto, setPassportPhoto] = useState<string>("/user.png");
+  const [passportPhoto, setPassportPhoto] = useState<string>(
+    applicantData.passportPhoto || "/user.png"
+  );
+  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    console.log("PersonalInfo received applicantData:", applicantData);
+    if (applicantData.passportPhoto) {
+      setPassportPhoto(applicantData.passportPhoto);
+    }
+  }, [applicantData]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setApplicantData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
+    onChange(name as keyof ApplicantData, value);
   };
 
-  const handlePassportUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePassportUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) setPassportPhoto(e.target.result as string);
-      };
-      reader.readAsDataURL(file);
+      setIsUploading(true);
+      try {
+        const cloudinaryUrl = await uploadToCloudinary(file);
+        setPassportPhoto(cloudinaryUrl);
+        onChange("passportPhoto", cloudinaryUrl);
+      } catch (error) {
+        console.error("Error uploading passport photo:", error);
+        alert("Failed to upload passport photo. Please try again.");
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -56,10 +74,9 @@ export default function PersonalInfo({
             Full Name <span className="required">*</span>
           </label>
           <input
-            onChange={handleChange}
             type="text"
             id="fullName"
-            name="fullName" // Ensure the name is set
+            name="fullName"
             value={applicantData.fullName}
             disabled
           />
@@ -69,7 +86,6 @@ export default function PersonalInfo({
             Index Number <span className="required">*</span>
           </label>
           <input
-            onChange={handleChange}
             type="text"
             id="indexNumber"
             name="indexNumber"
@@ -81,24 +97,22 @@ export default function PersonalInfo({
           <label htmlFor="gender">
             Gender <span className="required">*</span>
           </label>
-          <select
+          <input
             id="gender"
             name="gender"
             value={applicantData.gender}
-            onChange={handleChange}
             disabled
-          >
-            <option value="">Select Gender</option>
+          />
+          {/* <option value="">Select Gender</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
-          </select>
+          </select> */}
         </div>
         <div className="form-group">
           <label htmlFor="aggregate">
             Aggregate <span className="required">*</span>
           </label>
           <input
-            onChange={handleChange}
             type="text"
             id="aggregate"
             name="aggregate"
@@ -110,24 +124,22 @@ export default function PersonalInfo({
           <label htmlFor="residence">
             Residence <span className="required">*</span>
           </label>
-          <select
+          <input
             id="residence"
             name="residence"
             value={applicantData.residence}
-            onChange={handleChange}
             disabled
-          >
-            <option value="">Select Residence</option>
+          />
+          {/* <option value="">Select Residence</option>
             <option value="boarding">Boarding</option>
             <option value="day">Day</option>
-          </select>
+          </select> */}
         </div>
         <div className="form-group">
           <label htmlFor="programme">
             Programme <span className="required">*</span>
           </label>
           <input
-            onChange={handleChange}
             type="text"
             id="programme"
             name="programme"
@@ -148,6 +160,19 @@ export default function PersonalInfo({
             required
           />
         </div>
+        <div className="form-group">
+          <label htmlFor="phoneNumber">
+            Phone Number <span className="required">*</span>
+          </label>
+          <input
+            onChange={handleChange}
+            type="tel"
+            id="phoneNumber"
+            name="phoneNumber"
+            value={applicantData.phoneNumber}
+            required
+          />
+        </div>
         <div className="passport-photo">
           <label htmlFor="passportUpload">
             Passport Photo <span className="required">*</span>
@@ -159,6 +184,7 @@ export default function PersonalInfo({
             onChange={handlePassportUpload}
             required
             className="hidden"
+            disabled={isUploading}
           />
           <Image
             src={passportPhoto}
@@ -167,8 +193,11 @@ export default function PersonalInfo({
             height={100}
             className="passport-preview"
           />
-          <label htmlFor="passportUpload" className="upload-button">
-            Upload
+          <label
+            htmlFor="passportUpload"
+            className={`upload-button ${isUploading ? "disabled" : ""}`}
+          >
+            {isUploading ? "Uploading..." : "Upload"}
           </label>
         </div>
       </div>

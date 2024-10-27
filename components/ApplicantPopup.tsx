@@ -1,15 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
+interface CandidateInfo {
+  fullName: string;
+  indexNumber: string;
+  programme: string;
+  gender: string;
+  residence: string;
+  aggregate: number;
+}
+
+interface ApplicantPopupProps {
+  onClose: () => void;
+  candidateInfo: CandidateInfo;
+  showLogin: () => void;
+  onBuyVoucher: (phoneNumber: string) => void;
+}
 export default function ApplicantPopup({
   onClose,
+  candidateInfo,
+  showLogin,
   onBuyVoucher,
-}: {
-  onClose: () => void;
-  onBuyVoucher: (phoneNumber: string) => void;
-}) {
+}: ApplicantPopupProps) {
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isPaid, setIsPaid] = useState(false);
+  const [clientReference, setClientReference] = useState("");
+  const [voucherSent, setVoucherSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  const handleBuyVoucher = () => {
+    if (phoneNumber.length === 10 && phoneNumber[0] === "0") {
+      onBuyVoucher(phoneNumber);
+    } else {
+      alert("Please enter a valid phone number.");
+    }
+  };
 
   const handlePhoneInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
@@ -21,6 +50,139 @@ export default function ApplicantPopup({
   };
 
   const isPhoneValid = phoneNumber.length === 10 && phoneNumber[0] === "0";
+
+  const handlePayment = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/initiate-payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          totalAmount: 1, // Set your application fee here
+          description: "Peki Senior High School Application Fee",
+          clientReference: `PEKI-${Date.now()}`,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setClientReference(data.clientReference);
+        // Open the payment iframe
+        const paymentWindow = window.open(
+          data.checkoutDirectUrl,
+          "Payment",
+          "width=500,height=600"
+        );
+
+        // Start checking for payment status
+        checkPaymentStatus(data.clientReference);
+      } else {
+        throw new Error(data.error || "Payment initiation failed");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      setError("Failed to initiate payment. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const checkPaymentStatus = useCallback(async (clientRef: string) => {
+    const maxAttempts = 12; // 5 minutes (12 * 25 seconds)
+    let attempts = 0;
+
+    const checkStatus = async () => {
+      if (attempts >= maxAttempts) {
+        console.log("Max attempts reached. Payment status unknown.");
+        setError("Payment status check timed out. Please contact support.");
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/check-payment-status?clientReference=${clientRef}`
+        );
+        const data = await response.json();
+
+        if (data.success && data.status === "Paid") {
+          setIsPaid(true);
+          console.log("Payment successful!");
+        } else if (data.success && data.status === "Unpaid") {
+          attempts++;
+          setTimeout(checkStatus, 25000); // Check again after 25 seconds
+        } else {
+          setError("Payment failed or status unknown. Please try again.");
+        }
+      } catch (error) {
+        console.error("Error checking payment status:", error);
+        attempts++;
+        setTimeout(checkStatus, 25000); // Retry after 25 seconds
+      }
+    };
+
+    checkStatus();
+  }, []);
+
+  const handleGenerateVoucher = async () => {
+    if (isPhoneValid && isPaid) {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const response = await fetch("/api/generate-voucher", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            phoneNumber,
+            indexNumber: candidateInfo.indexNumber,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          setVoucherSent(true);
+          showLogin();
+          alert(
+            "Voucher generated and sent successfully! Please check your phone for the SMS."
+          );
+        } else {
+          throw new Error(data.error || "Failed to generate voucher");
+        }
+      } catch (error: unknown) {
+        console.error("Error:", error);
+
+        if (error instanceof Error) {
+          setError(`Failed to generate voucher: ${error.message}`);
+        } else {
+          setError("An unknown error occurred.");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    // Set up event listener for payment callback
+    const handlePaymentCallback = (event: MessageEvent) => {
+      if (event.data.type === "PAYMENT_SUCCESS") {
+        setIsPaid(true);
+        console.log("Payment successful!");
+      }
+    };
+
+    window.addEventListener("message", handlePaymentCallback);
+
+    return () => {
+      window.removeEventListener("message", handlePaymentCallback);
+    };
+  }, []);
 
   return (
     <div className="applicant-popup" style={{ display: "flex" }}>
@@ -34,35 +196,70 @@ export default function ApplicantPopup({
         <div className="popup-content">
           <div className="applicant-info">
             <p>
-              <strong>Name: TAMAKLOE GERTRUDE EDINAM</strong>
+              <strong>Name: {candidateInfo.fullName}</strong>
             </p>
-            <p>Index Number: 011300119323</p>
-            <p>Programme: GENERAL ARTS</p>
-            <p>Gender: Female</p>
-            <p>Residence: Boarding</p>
-            <p>Aggregate: 31</p>
+            <p>Index Number: {candidateInfo.indexNumber}</p>
+            <p>Programme: {candidateInfo.programme}</p>
+            <p>Gender: {candidateInfo.gender}</p>
+            <p>Residence: {candidateInfo.residence}</p>
+            <p>Aggregate: {candidateInfo.aggregate}</p>
           </div>
-          <div className="warning-box">
-            <p className="warning-text">
-              Enter only an active phone number below. You will receive login
-              credentials (Serial and PIN) and other information on this number
+          {error && (
+            <div className="error-box">
+              <p className="error-text">{error}</p>
+            </div>
+          )}
+          {!isPaid && (
+            <div className="warning-box">
+              <p className="warning-text">
+                You must pay the application fee to proceed. After payment,
+                enter your active phone number to receive login credentials.
+              </p>
+            </div>
+          )}
+          {!isPaid && (
+            <button
+              className="pay-button"
+              onClick={handlePayment}
+              disabled={isLoading}
+            >
+              {isLoading ? "Processing..." : "Pay Application Fee"}
+            </button>
+          )}
+          {isPaid && !voucherSent && (
+            <>
+              <input
+                type="tel"
+                className="phone-input"
+                value={phoneNumber}
+                onChange={handlePhoneInput}
+                placeholder="Enter phone number here"
+                maxLength={10}
+              />
+              <button
+                className={`buy-button ${isPhoneValid ? "active" : ""}`}
+                disabled={!isPhoneValid || isLoading}
+                onClick={handleGenerateVoucher}
+              >
+                {isLoading ? "Processing..." : "Generate Voucher"}
+              </button>
+            </>
+          )}
+          {voucherSent && (
+            <p className="success-message">
+              Voucher sent successfully! Redirecting to login page...
+            </p>
+          )}
+          <div className="creddiv">
+            <p className="cred">
+              Already have login credentials?
+              <b>
+                <a onClick={showLogin} className="credbtn">
+                  Click here to login
+                </a>
+              </b>
             </p>
           </div>
-          <input
-            type="tel"
-            className="phone-input"
-            value={phoneNumber}
-            onChange={handlePhoneInput}
-            placeholder="Enter phone number here"
-            maxLength={10}
-          />
-          <button
-            className={`buy-button ${isPhoneValid ? "active" : ""}`}
-            disabled={!isPhoneValid}
-            onClick={() => isPhoneValid && onBuyVoucher(phoneNumber)}
-          >
-            Buy application voucher
-          </button>
         </div>
         <div className="popup-footer">
           <p className="footer-text">Packets Out LLC (Smart Systems)</p>
