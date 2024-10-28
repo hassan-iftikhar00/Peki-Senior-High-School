@@ -28,6 +28,7 @@ export interface ApplicantData {
   residence: string;
   programme: string;
   nhisNo: string;
+  enrollmentCode: string; // Add this line
   houseAssigned: string;
   passportPhoto: string;
   phoneNumber: string;

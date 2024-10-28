@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import VerifyIndexPage from "../components/VerifyIndexPage";
 import ApplicantLoginPage from "../components/ApplicantLoginPage";
@@ -33,7 +33,12 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  const [recoveredSerial, setRecoveredSerial] = useState("");
+  const [recoveredPin, setRecoveredPin] = useState("");
+
   const router = useRouter();
+
   useEffect(() => {
     const checkAuth = async () => {
       const token = document.cookie.replace(
@@ -50,7 +55,6 @@ export default function Home() {
           if (response.ok) {
             router.push("/dashboard");
           } else {
-            // Token is invalid, remove it
             document.cookie =
               "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
           }
@@ -115,16 +119,10 @@ export default function Home() {
 
       if (data.success) {
         console.log("Login successful, received token:", data.token);
-
-        // Explicitly set the token as a cookie
         document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Strict`;
         console.log("Token set in cookie:", document.cookie);
-
-        // Store token in localStorage as a backup
         localStorage.setItem("token", data.token);
         console.log("Token stored in localStorage");
-
-        // Add a small delay before redirecting to ensure the cookie is set
         setTimeout(() => {
           console.log("Redirecting to dashboard...");
           router.push("/dashboard");
@@ -145,25 +143,8 @@ export default function Home() {
     setShowApplicantPopup(false);
   };
 
-  const handleRecoverLink = () => setShowRecoverPopup(true);
-
-  const handleRecoverLoad = (indexNumber: string) => {
-    if (indexNumber === verifiedIndexNumber) {
-      setShowRecoverPopup(false);
-      setShowApplicantLogin(true);
-    } else {
-      alert("Invalid index number or no payment record found.");
-    }
-  };
-
-  const handleRecoverSend = (indexNumber: string) => {
-    if (indexNumber === verifiedIndexNumber) {
-      console.log(`Sending login credentials to ${verifiedPhoneNumber}`);
-      alert(`Login credentials sent to ${verifiedPhoneNumber}`);
-      setShowRecoverPopup(false);
-    } else {
-      alert("Invalid index number or no payment record found.");
-    }
+  const handleRecoverLink = () => {
+    setShowRecoverPopup(true);
   };
 
   const handleBuyVoucher = async (phoneNumber: string) => {
@@ -188,6 +169,57 @@ export default function Home() {
     }
   };
 
+  const handleRecoverLoad = useCallback(async (indexNumber: string) => {
+    console.log("Recover load called with index number:", indexNumber);
+    try {
+      const response = await fetch(`/api/recover?indexNumber=${indexNumber}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setRecoveredSerial(data.serialNumber);
+        setRecoveredPin(data.pin);
+        setShowRecoverPopup(false);
+        setShowApplicantLogin(true);
+        return { serialNumber: data.serialNumber, pin: data.pin };
+      } else {
+        console.error("Failed to recover login information:", data.error);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error recovering login info:", error);
+      return null;
+    }
+  }, []);
+
+  const handleRecoverSend = useCallback(async (indexNumber: string) => {
+    console.log("Recover send called with index number:", indexNumber);
+    try {
+      const response = await fetch("/api/send-recovered-login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ indexNumber }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("API response:", result);
+
+      if (result.success) {
+        console.log("Login information sent successfully");
+        setShowRecoverPopup(false);
+        setShowApplicantLogin(true);
+      } else {
+        console.error("Failed to send login information:", result.error);
+      }
+    } catch (error) {
+      console.error("Error sending recovered login info:", error);
+    }
+  }, []);
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -203,6 +235,8 @@ export default function Home() {
         <ApplicantLoginPage
           onRecoverLink={handleRecoverLink}
           onLogin={handleLogin}
+          initialSerial={recoveredSerial}
+          initialPin={recoveredPin}
         />
       )}
       {showEmptyError && <EmptyErrorPopup />}

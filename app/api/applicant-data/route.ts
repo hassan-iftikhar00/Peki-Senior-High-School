@@ -77,6 +77,7 @@ export async function GET(request: NextRequest) {
       residence: candidate.residence,
       programme: candidate.programme,
       nhisNo: candidate.nhisNo || "",
+      enrollmentCode: candidate.enrollmentCode || "", // Add this line
       houseAssigned: candidate.houseAssigned || "",
       passportPhoto: candidate.passportPhoto || "",
       phoneNumber: candidate.phoneNumber || "",

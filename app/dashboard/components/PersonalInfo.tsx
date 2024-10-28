@@ -10,6 +10,7 @@ interface ApplicantData {
   residence: string;
   programme: string;
   nhisNo: string;
+  enrollmentCode: string; // Add this line
   houseAssigned: string;
   passportPhoto: string;
   phoneNumber: string;
@@ -103,10 +104,6 @@ export default function PersonalInfo({
             value={applicantData.gender}
             disabled
           />
-          {/* <option value="">Select Gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select> */}
         </div>
         <div className="form-group">
           <label htmlFor="aggregate">
@@ -130,10 +127,6 @@ export default function PersonalInfo({
             value={applicantData.residence}
             disabled
           />
-          {/* <option value="">Select Residence</option>
-            <option value="boarding">Boarding</option>
-            <option value="day">Day</option>
-          </select> */}
         </div>
         <div className="form-group">
           <label htmlFor="programme">
@@ -157,6 +150,19 @@ export default function PersonalInfo({
             id="nhisNo"
             name="nhisNo"
             value={applicantData.nhisNo}
+            required
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="enrollmentCode">
+            Enrollment Code <span className="required">*</span>
+          </label>
+          <input
+            onChange={handleChange}
+            type="text"
+            id="enrollmentCode"
+            name="enrollmentCode"
+            value={applicantData.enrollmentCode}
             required
           />
         </div>

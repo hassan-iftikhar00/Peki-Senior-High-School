@@ -8,6 +8,7 @@ interface ApplicantData {
   residence: string;
   programme: string;
   nhisNo: string;
+  enrollmentCode: string; // Add this line
   passportPhoto: string;
   phoneNumber?: string;
 }
@@ -79,7 +80,8 @@ export default function Submit({
     if (!applicantData.nhisNo) newErrors.push("NHIS Number is required");
     if (!applicantData.passportPhoto)
       newErrors.push("Passport Photo is required");
-
+    if (!applicantData.enrollmentCode)
+      newErrors.push("Enrollment Code is required");
     // Check GuardianData
     if (!guardianData.guardianName) newErrors.push("Guardian Name is required");
     if (!guardianData.relationship)
@@ -144,6 +146,7 @@ export default function Submit({
       residence: applicantData.residence,
       programme: applicantData.programme,
       nhisNo: applicantData.nhisNo,
+      enrollmentCode: applicantData.enrollmentCode, // Add this line
       passportPhoto: applicantData.passportPhoto,
       phoneNumber: applicantData.phoneNumber || "",
       guardianInfo: guardianData,

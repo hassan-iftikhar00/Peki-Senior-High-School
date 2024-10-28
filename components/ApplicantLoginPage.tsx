@@ -1,20 +1,24 @@
 import Image from "next/image";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface ApplicantLoginPageProps {
   onRecoverLink: () => void;
   onLogin: (indexNumber: string, serial: string, pin: string) => Promise<void>;
+  initialSerial?: string;
+  initialPin?: string;
 }
 
 export default function ApplicantLoginPage({
   onRecoverLink,
   onLogin,
+  initialSerial = "",
+  initialPin = "",
 }: ApplicantLoginPageProps) {
   const [indexNumber, setIndexNumber] = useState("");
-  const [serial, setSerial] = useState("");
-  const [pin, setPin] = useState("");
+  const [serial, setSerial] = useState(initialSerial);
+  const [pin, setPin] = useState(initialPin);
   const [showPin, setShowPin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -39,6 +43,11 @@ export default function ApplicantLoginPage({
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    setSerial(initialSerial);
+    setPin(initialPin);
+  }, [initialSerial, initialPin]);
 
   const togglePinVisibility = () => {
     setShowPin(!showPin);
@@ -218,6 +227,21 @@ export default function ApplicantLoginPage({
             {isLoading ? "Logging in..." : "Login"}
           </button>
         </form>
+        <button
+          type="button"
+          onClick={onRecoverLink}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#008751",
+            textDecoration: "underline",
+            cursor: "pointer",
+            marginTop: "16px",
+            fontSize: "14px",
+          }}
+        >
+          Recover Lost Login
+        </button>
         <div>
           <footer
             style={{

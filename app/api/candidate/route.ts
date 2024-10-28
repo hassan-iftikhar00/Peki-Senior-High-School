@@ -21,6 +21,7 @@ export async function POST(request: Request) {
       "residence",
       "programme",
       "nhisNo",
+      "enrollmentCode", // Add this line
       "passportPhoto",
     ];
 

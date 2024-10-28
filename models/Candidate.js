@@ -8,10 +8,12 @@ const CandidateSchema = new mongoose.Schema({
   residence: { type: String, required: true },
   programme: { type: String, required: true },
   nhisNo: { type: String, required: true },
+  enrollmentCode: { type: String, required: true },
+
   passportPhoto: { type: String, required: true },
   phoneNumber: { type: String },
-  pin: { type: String, required: false }, // Changed to false
-  serialNumber: { type: String, required: false }, // Changed to false
+  pin: { type: String, required: false },
+  serialNumber: { type: String, required: false },
   guardianInfo: {
     guardianName: { type: String, required: true },
     relationship: { type: String, required: true },
