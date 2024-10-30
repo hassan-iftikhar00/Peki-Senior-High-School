@@ -10,12 +10,12 @@ const PDF_TEMPLATES = {
 };
 
 export async function POST(
-  request: NextRequest,
+  req: Request,
   { params }: { params: { type: string } }
 ) {
   try {
     const { type } = params;
-    const data = await request.json();
+    const data = await req.json();
 
     console.log("Received data for PDF generation:", data);
 
@@ -79,6 +79,7 @@ const ADMISSION_LETTER_COORDINATES: TemplateCoordinates = {
 };
 
 const PERSONAL_RECORD_COORDINATES: TemplateCoordinates = {
+  passportPhoto: { x: 305, y: 660, width: 80, height: 80 },
   // Fields above phoneNumber - Increment by 15
   dateOfBirth: { x: 270, y: 404, size: 10 }, // 389 + 15
   enrollmentCode: { x: 270, y: 419, size: 10 }, // 404 + 15
@@ -158,25 +159,26 @@ async function generatePDF(
       ? ADMISSION_LETTER_COORDINATES
       : PERSONAL_RECORD_COORDINATES;
 
+  if (data.passportPhoto) {
+    try {
+      const imageBytes = await fetchImageAsBytes(data.passportPhoto);
+      const image = await pdfDoc.embedJpg(imageBytes);
+      const photoCoords = coordinates.passportPhoto;
+
+      page.drawImage(image, {
+        x: photoCoords.x,
+        y: photoCoords.y,
+        width: photoCoords.width,
+        height: photoCoords.height,
+      });
+    } catch (error) {
+      console.error("Error embedding passport photo:", error);
+      // Continue with the rest of the PDF generation even if photo fails
+    }
+  }
+
   if (type === "admissionLetter") {
     // Embed passport photo if available
-    if (data.passportPhoto) {
-      try {
-        const imageBytes = await fetchImageAsBytes(data.passportPhoto);
-        const image = await pdfDoc.embedJpg(imageBytes);
-        const photoCoords = coordinates.passportPhoto;
-
-        page.drawImage(image, {
-          x: photoCoords.x,
-          y: photoCoords.y,
-          width: photoCoords.width,
-          height: photoCoords.height,
-        });
-      } catch (error) {
-        console.error("Error embedding passport photo:", error);
-        // Continue with the rest of the PDF generation even if photo fails
-      }
-    }
 
     // Draw text fields as before
     const fields = {
