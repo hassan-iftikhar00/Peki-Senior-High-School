@@ -234,14 +234,13 @@ async function generatePDF(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { type: string } }
+  context: { params: { type: string } }
 ) {
   try {
-    const { type } = params;
+    const { type } = context.params;
     const data = await request.json();
     console.log("Received data for PDF generation:", data);
 
-    // Validate document type
     const documentType = type as "admissionLetter" | "personalRecord";
     if (!["admissionLetter", "personalRecord"].includes(documentType)) {
       return NextResponse.json(
@@ -250,7 +249,6 @@ export async function POST(
       );
     }
 
-    // Validate required data
     if (!data.applicationNumber) {
       return NextResponse.json(
         { error: "Application number is required" },
@@ -258,10 +256,7 @@ export async function POST(
       );
     }
 
-    // Generate PDF
     const pdfBytes = await generatePDF(data, documentType);
-
-    // Return PDF response
     return new NextResponse(pdfBytes, {
       headers: {
         "Content-Type": "application/pdf",
@@ -273,10 +268,7 @@ export async function POST(
   } catch (error) {
     console.error("Error generating PDF:", error);
     return NextResponse.json(
-      {
-        error: "Failed to generate PDF",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
+      { error: "Failed to generate PDF" },
       { status: 500 }
     );
   }
