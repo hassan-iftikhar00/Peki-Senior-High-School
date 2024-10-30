@@ -9,9 +9,12 @@ const PDF_TEMPLATES = {
     "https://res.cloudinary.com/dah9roj2d/image/upload/v1730247831/yp2rtvahwinj1mevvdui.pdf",
 };
 
-export async function POST(req: NextRequest, context: { params: { type: string } }) {
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { type: string } }
+) {
   try {
-    const { type } = context.params;
+    const { type } = params;
     const data = await req.json();
 
     console.log("Received data for PDF generation:", data);
@@ -49,6 +52,7 @@ export async function POST(req: NextRequest, context: { params: { type: string }
     );
   }
 }
+
 interface TextPosition {
   x: number;
   y: number;
