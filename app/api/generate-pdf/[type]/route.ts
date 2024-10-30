@@ -9,12 +9,10 @@ const PDF_TEMPLATES = {
     "https://res.cloudinary.com/dah9roj2d/image/upload/v1730247831/yp2rtvahwinj1mevvdui.pdf",
 };
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { type: string } }
-) {
+export async function POST(req: NextRequest) {
   try {
-    const { type } = params;
+    // Extract the type from the URL
+    const type = req.nextUrl.pathname.split("/").pop();
     const data = await req.json();
 
     console.log("Received data for PDF generation:", data);
