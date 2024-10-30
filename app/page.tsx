@@ -102,17 +102,13 @@ export default function Home() {
     }
   };
 
-  const handleLogin = async (
-    indexNumber: string,
-    serial: string,
-    pin: string
-  ) => {
+  const handleLogin = async (serial: string, pin: string) => {
     try {
       console.log("Attempting login...");
       const response = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ indexNumber, serial, pin }),
+        body: JSON.stringify({ serial, pin }),
       });
 
       const data = await response.json();

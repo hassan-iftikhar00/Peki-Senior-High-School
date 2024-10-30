@@ -10,12 +10,14 @@ interface GuardianData {
 
 interface GuardianInfoProps {
   guardianInfo: GuardianData;
+  isDisabled?: boolean;
   onChange: (field: keyof GuardianData, value: string) => void;
 }
 
 export default function GuardianInfo({
   guardianInfo,
   onChange,
+  isDisabled,
 }: GuardianInfoProps) {
   return (
     <div className="section">
@@ -31,6 +33,7 @@ export default function GuardianInfo({
             value={guardianInfo.guardianName}
             onChange={(e) => onChange("guardianName", e.target.value)}
             required
+            disabled={isDisabled}
           />
         </div>
 
@@ -43,6 +46,7 @@ export default function GuardianInfo({
             value={guardianInfo.relationship}
             onChange={(e) => onChange("relationship", e.target.value)}
             required
+            disabled={isDisabled}
           >
             <option value="">Select Relationship</option>
             <option value="parent">Parent</option>
@@ -62,6 +66,7 @@ export default function GuardianInfo({
             value={guardianInfo.phoneNumber}
             onChange={(e) => onChange("phoneNumber", e.target.value)}
             required
+            disabled={isDisabled}
           />
         </div>
 
@@ -72,6 +77,7 @@ export default function GuardianInfo({
             id="whatsappNumber"
             value={guardianInfo.whatsappNumber}
             onChange={(e) => onChange("whatsappNumber", e.target.value)}
+            disabled={isDisabled}
           />
         </div>
 
@@ -82,6 +88,7 @@ export default function GuardianInfo({
             id="email"
             value={guardianInfo.email}
             onChange={(e) => onChange("email", e.target.value)}
+            disabled={isDisabled}
           />
         </div>
       </form>

@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
 import PersonalInfo from "./components/PersonalInfo";
 import AcademicInfo from "./components/AcademicInfo";
 import House from "./components/House";
-import Uploads from "./components/Uploads";
+import Uploads, { UploadStatus } from "./components/Uploads";
 import Submit from "./components/Submit";
 import AdmissionDocuments from "./components/AdmissionDocuments";
 import GuardianInfo from "./components/GuardianInfo";
@@ -18,8 +18,6 @@ import { Loader2 } from "lucide-react";
 import { uploadToCloudinary } from ".././utils/cloudinary";
 import "./dashboard.css";
 
-console.log("Dashboard file is being processed");
-
 export interface ApplicantData {
   fullName: string;
   indexNumber: string;
@@ -28,7 +26,7 @@ export interface ApplicantData {
   residence: string;
   programme: string;
   nhisNo: string;
-  enrollmentCode: string; // Add this line
+  enrollmentCode: string;
   houseAssigned: string;
   passportPhoto: string;
   phoneNumber: string;
@@ -36,6 +34,7 @@ export interface ApplicantData {
   additionalInfo: AdditionalInfoData;
   academicInfo: AcademicData;
   uploads: UploadStatus;
+  applicationNumber?: string;
 }
 
 export interface GuardianData {
@@ -62,161 +61,73 @@ export interface AcademicData {
   electiveSubjects: string[];
 }
 
-export interface UploadStatus {
-  placementForm: string;
-  nhisCard: string;
-  idDocument: string;
-  medicalRecords: string;
-}
-
 export default function Dashboard() {
-  console.log("Dashboard component is rendering");
-
   const [applicantData, setApplicantData] = useState<ApplicantData | null>(
     null
   );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [uploaded, setUploaded] = useState<Record<keyof UploadStatus, boolean>>(
-    {
-      placementForm: false,
-      nhisCard: false,
-      idDocument: false,
-      medicalRecords: false,
-    }
-  );
-  const [isUploading, setIsUploading] = useState<
-    Record<keyof UploadStatus, boolean>
-  >({
-    placementForm: false,
-    nhisCard: false,
-    idDocument: false,
-    medicalRecords: false,
-  });
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    console.log("Dashboard: useEffect is running");
-    const fetchApplicantData = async () => {
-      console.log("Dashboard: Attempting to fetch applicant data");
-      setIsLoading(true);
-      setError(null);
+  const fetchApplicantData = useCallback(async () => {
+    if (!isLoading) return;
 
-      try {
-        console.log("Dashboard: Calling /api/applicant-data");
-        const response = await fetch("/api/applicant-data", {
-          credentials: "include",
-        });
+    try {
+      const response = await fetch("/api/applicant-data", {
+        credentials: "include",
+      });
 
-        console.log("Dashboard: Response status:", response.status);
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("Dashboard: Error response:", errorData);
-          if (response.status === 401) {
-            console.log("Dashboard: Unauthorized, redirecting to login");
-            router.push("/");
-            return;
-          }
-          throw new Error(
-            errorData.error || `HTTP error! status: ${response.status}`
-          );
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (response.status === 401) {
+          router.push("/");
+          return;
         }
+        throw new Error(
+          errorData.error || `HTTP error! status: ${response.status}`
+        );
+      }
 
-        const data = await response.json();
-        console.log("Dashboard: Fetched applicant data:", data);
+      const data = await response.json();
 
-        if (data && Object.keys(data).length > 0) {
-          if (!data.uploads) {
-            data.uploads = {
-              placementForm: "",
-              nhisCard: "",
-              idDocument: "",
-              medicalRecords: "",
-            };
-          }
-          setApplicantData(data);
-          // Update uploaded state based on fetched data
-          setUploaded({
-            placementForm: !!data.uploads.placementForm,
-            nhisCard: !!data.uploads.nhisCard,
-            idDocument: !!data.uploads.idDocument,
-            medicalRecords: !!data.uploads.medicalRecords,
-          });
-        } else {
-          throw new Error("No applicant data found");
+      if (data && Object.keys(data).length > 0) {
+        if (!data.uploads) {
+          data.uploads = {
+            placementForm: [],
+            nhisCard: null,
+            idDocument: null,
+            medicalRecords: [],
+          };
         }
-      } catch (error) {
-        console.error("Dashboard: Error fetching applicant data:", error);
-        setError(
-          error instanceof Error
-            ? error.message
-            : "Failed to fetch applicant data"
-        );
-      } finally {
-        setIsLoading(false);
+        setApplicantData(data);
+        // Set submission status based on whether application number exists
+        setIsSubmitted(!!data.applicationNumber);
+      } else {
+        throw new Error("No applicant data found");
       }
-    };
-
-    fetchApplicantData();
-  }, [router]);
-
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-    documentType: keyof UploadStatus
-  ) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      setIsUploading((prev) => ({ ...prev, [documentType]: true }));
-      try {
-        const uploadPromises = Array.from(files).map((file) =>
-          uploadToCloudinary(file)
-        );
-        const uploadedUrls = await Promise.all(uploadPromises);
-
-        const newStatus = {
-          ...applicantData!.uploads,
-          [documentType]: uploadedUrls.join(", "),
-        };
-        setApplicantData((prevData) => ({
-          ...prevData!,
-          uploads: newStatus,
-        }));
-        setUploaded((prevUploaded) => ({
-          ...prevUploaded,
-          [documentType]: true,
-        }));
-      } catch (error) {
-        console.error(`Error uploading ${documentType}:`, error);
-        alert(`Failed to upload ${documentType}. Please try again.`);
-        setApplicantData((prevData) => ({
-          ...prevData!,
-          uploads: {
-            ...prevData!.uploads,
-            [documentType]: "Not uploaded",
-          },
-        }));
-      } finally {
-        setIsUploading((prev) => ({ ...prev, [documentType]: false }));
-      }
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch applicant data"
+      );
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [router, isLoading]);
 
-  const handleUploadStatusChange = (newStatus: UploadStatus) => {
-    console.log("Dashboard: Updating upload status:", newStatus);
-    setApplicantData((prevData) => {
-      if (!prevData) return null;
-      return {
-        ...prevData,
-        uploads: newStatus,
-      };
-    });
-  };
+  useEffect(() => {
+    fetchApplicantData();
+  }, [fetchApplicantData]);
 
   const handlePersonalInfoChange = (
     field: keyof ApplicantData,
     value: string
   ) => {
+    // Only block changes if submitted AND not in edit mode
+    if (isSubmitted && !isEditMode) return;
     setApplicantData((prevData) => {
       if (!prevData) return null;
       return {
@@ -230,6 +141,7 @@ export default function Dashboard() {
     field: keyof AdditionalInfoData,
     value: string
   ) => {
+    if (isSubmitted && !isEditMode) return;
     setApplicantData((prevData) => {
       if (!prevData) return null;
       return {
@@ -243,6 +155,7 @@ export default function Dashboard() {
   };
 
   const handleGuardianChange = (field: keyof GuardianData, value: string) => {
+    if (isSubmitted && !isEditMode) return;
     setApplicantData((prevData) => {
       if (!prevData) return null;
       return {
@@ -259,6 +172,7 @@ export default function Dashboard() {
     field: keyof AcademicData,
     value: string | string[]
   ) => {
+    if (isSubmitted && !isEditMode) return;
     setApplicantData((prevData) => {
       if (!prevData) return null;
       return {
@@ -271,14 +185,19 @@ export default function Dashboard() {
     });
   };
 
-  console.log(
-    "Dashboard: Before rendering, isLoading:",
-    isLoading,
-    "error:",
-    error,
-    "applicantData:",
-    applicantData
+  const handleUploadStatusChange = useCallback(
+    (newUploadStatus: UploadStatus) => {
+      if (isSubmitted && !isEditMode) return;
+      setApplicantData((prevData) =>
+        prevData ? { ...prevData, uploads: newUploadStatus } : null
+      );
+    },
+    [isSubmitted, isEditMode] // Add these dependencies
   );
+
+  const handleSubmissionComplete = useCallback(() => {
+    setIsSubmitted(true);
+  }, []);
 
   if (isLoading) {
     return (
@@ -309,44 +228,56 @@ export default function Dashboard() {
     );
   }
 
-  console.log("Dashboard: Rendering main content");
-
   return (
-    <div className="dashboard-container">
-      <Sidebar />
-      <div className="main-content">
-        <TopBar applicantName={applicantData.fullName} />
+    <div
+      className="dashboard-container"
+      style={{ display: "flex", flexDirection: "column", height: "100vh" }}
+    >
+      <div style={{ display: "flex", width: "100%" }}>
+        <div style={{ width: "280px" }}>
+          <Sidebar />
+        </div>
+        <div style={{ flex: 1 }}>
+          <TopBar
+            applicantName={applicantData.fullName}
+            passportPhoto={applicantData.passportPhoto}
+          />
+        </div>
+      </div>
+      <div
+        className="main-content"
+        style={{ flex: 1, overflow: "auto", marginLeft: "280px" }}
+      >
         <div className="content-area">
           <PersonalInfo
             applicantData={applicantData}
             onChange={handlePersonalInfoChange}
+            isDisabled={isSubmitted && !isEditMode}
           />
           <GuardianInfo
             guardianInfo={applicantData.guardianInfo}
             onChange={handleGuardianChange}
+            isDisabled={isSubmitted && !isEditMode}
           />
           <AdditionalInfo
             additionalInfo={applicantData.additionalInfo}
             onChange={handleAdditionalChange}
+            isDisabled={isSubmitted && !isEditMode}
           />
           <AcademicInfo
             programme={applicantData.programme}
             academicInfo={applicantData.academicInfo}
             setAcademicData={handleAcademicChange}
+            isDisabled={isSubmitted && !isEditMode}
           />
           <House
             gender={applicantData.gender}
             houseAssigned={applicantData.houseAssigned}
           />
-
           <Uploads
-            uploadStatus={applicantData.uploads || {}}
-            setUploadStatus={(newStatus) => {
-              setApplicantData((prevData) => ({
-                ...prevData!,
-                uploads: newStatus,
-              }));
-            }}
+            initialUploadStatus={applicantData.uploads}
+            onUploadStatusChange={handleUploadStatusChange}
+            isDisabled={isSubmitted && !isEditMode}
           />
           <Submit
             applicantData={applicantData}
@@ -358,11 +289,16 @@ export default function Dashboard() {
               houseAssigned: applicantData.houseAssigned,
             }}
             uploadStatus={applicantData.uploads}
+            onSubmit={() => setIsSubmitted(true)}
+            onEdit={() => setIsEditMode(true)}
+            onSave={() => setIsEditMode(false)}
+            isSubmitted={isSubmitted}
+            isEditMode={isEditMode}
           />
-          <AdmissionDocuments />
+          <AdmissionDocuments candidateData={applicantData} />
         </div>
-        <Footer />
       </div>
+      <Footer />
     </div>
   );
 }

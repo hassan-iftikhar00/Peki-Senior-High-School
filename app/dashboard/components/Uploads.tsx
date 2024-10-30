@@ -1,30 +1,45 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { uploadToCloudinary } from "../../utils/cloudinary";
+import { Trash2 } from "lucide-react";
 
-interface UploadStatus {
-  placementForm: string;
-  nhisCard: string;
-  idDocument: string;
-  medicalRecords: string;
+export interface UploadStatus {
+  placementForm: string[];
+  nhisCard: string | null;
+  idDocument: string | null;
+  medicalRecords: string[];
 }
 
+type DocumentType = keyof UploadStatus;
+
 interface UploadsProps {
-  uploadStatus: Partial<UploadStatus>;
-  setUploadStatus: (newStatus: UploadStatus) => void;
+  initialUploadStatus: Partial<UploadStatus>;
+  isDisabled?: boolean;
+  onUploadStatusChange: (newStatus: UploadStatus) => void;
 }
 
 const defaultUploadStatus: UploadStatus = {
-  placementForm: "",
-  nhisCard: "",
-  idDocument: "",
-  medicalRecords: "",
+  placementForm: [],
+  nhisCard: null,
+  idDocument: null,
+  medicalRecords: [],
 };
 
 export default function Uploads({
-  uploadStatus = {},
-  setUploadStatus,
+  initialUploadStatus,
+  onUploadStatusChange,
+  isDisabled,
 }: UploadsProps) {
-  const [uploaded, setUploaded] = useState<Record<keyof UploadStatus, boolean>>(
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>(() => {
+    return {
+      ...defaultUploadStatus,
+      ...initialUploadStatus,
+    };
+  });
+
+  const [fileNames, setFileNames] = useState<Record<string, string>>({});
+  const [isUploading, setIsUploading] = useState<Record<DocumentType, boolean>>(
     {
       placementForm: false,
       nhisCard: false,
@@ -33,113 +48,130 @@ export default function Uploads({
     }
   );
 
-  const [isUploading, setIsUploading] = useState<
-    Record<keyof UploadStatus, boolean>
-  >({
-    placementForm: false,
-    nhisCard: false,
-    idDocument: false,
-    medicalRecords: false,
-  });
-
-  const [fileCount, setFileCount] = useState<
-    Record<keyof UploadStatus, number>
-  >({
-    placementForm: 0,
-    nhisCard: 0,
-    idDocument: 0,
-    medicalRecords: 0,
-  });
-
-  const currentUploadStatus = { ...defaultUploadStatus, ...uploadStatus };
-
   useEffect(() => {
-    console.log(
-      "Uploads: useEffect running, uploadStatus:",
-      currentUploadStatus
-    );
-    const newUploadedState = Object.entries(currentUploadStatus).reduce(
-      (acc, [key, value]) => {
-        acc[key as keyof UploadStatus] =
-          value !== "" && value !== "Not uploaded";
-        return acc;
-      },
-      {} as Record<keyof UploadStatus, boolean>
-    );
-    console.log("Uploads: New uploaded state:", newUploadedState);
-    setUploaded(newUploadedState);
+    onUploadStatusChange(uploadStatus);
+  }, [uploadStatus, onUploadStatusChange]);
 
-    // Update file count based on uploaded URLs
-    const newFileCount = Object.entries(currentUploadStatus).reduce(
-      (acc, [key, value]) => {
-        acc[key as keyof UploadStatus] = value ? value.split(", ").length : 0;
-        return acc;
-      },
-      {} as Record<keyof UploadStatus, number>
-    );
-    setFileCount(newFileCount);
-  }, [uploadStatus]);
+  const getDisplayName = (url: string | null): string => {
+    if (!url) return "No file selected";
+    return fileNames[url] || "Uploaded file";
+  };
 
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
-    documentType: keyof UploadStatus
+    documentType: DocumentType
   ) => {
-    console.log(`Uploads: File upload initiated for ${documentType}`);
     const files = event.target.files;
-    if (files && files.length > 0) {
-      setIsUploading((prev) => ({ ...prev, [documentType]: true }));
-      try {
-        const uploadPromises = Array.from(files).map((file) =>
-          uploadToCloudinary(file)
-        );
-        const uploadedUrls = await Promise.all(uploadPromises);
+    if (!files || files.length === 0) return;
 
-        const newStatus = {
-          ...currentUploadStatus,
-          [documentType]: uploadedUrls.join(", "),
-        };
-        console.log("Uploads: Updating upload status:", newStatus);
-        setUploadStatus(newStatus);
-        setUploaded((prevUploaded) => ({
-          ...prevUploaded,
-          [documentType]: true,
-        }));
-        setFileCount((prevCount) => ({
-          ...prevCount,
-          [documentType]: uploadedUrls.length,
-        }));
-      } catch (error) {
-        console.error(`Uploads: Error uploading ${documentType}:`, error);
-        alert(`Failed to upload ${documentType}. Please try again.`);
-        setUploadStatus({
-          ...currentUploadStatus,
-          [documentType]: "Not uploaded",
-        });
-      } finally {
-        setIsUploading((prev) => ({ ...prev, [documentType]: false }));
-      }
+    setIsUploading((prev) => ({ ...prev, [documentType]: true }));
+
+    try {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const url = await uploadToCloudinary(file);
+        if (url) {
+          setFileNames((prev) => ({
+            ...prev,
+            [url]: file.name,
+          }));
+        }
+        return url;
+      });
+
+      const uploadedUrls = (await Promise.all(uploadPromises)).filter(Boolean);
+
+      setUploadStatus((prevStatus) => {
+        if (
+          documentType === "placementForm" ||
+          documentType === "medicalRecords"
+        ) {
+          return {
+            ...prevStatus,
+            [documentType]: [...prevStatus[documentType], ...uploadedUrls],
+          };
+        } else {
+          return {
+            ...prevStatus,
+            [documentType]: uploadedUrls[0] || null,
+          };
+        }
+      });
+    } catch (error) {
+      console.error(`Error uploading ${documentType}:`, error);
+      alert(`Failed to upload ${documentType}. Please try again.`);
+    } finally {
+      setIsUploading((prev) => ({ ...prev, [documentType]: false }));
     }
   };
 
-  const isRequired = (key: keyof UploadStatus) => key !== "medicalRecords";
-
-  const getUploadStatusText = (key: keyof UploadStatus) => {
-    if (!uploaded[key]) return "Not uploaded";
-    const count = fileCount[key];
-    return count === 1 ? "1 file uploaded" : `${count} files uploaded`;
+  const handleDeleteFile = (documentType: DocumentType, index: number) => {
+    setUploadStatus((prevStatus) => {
+      if (
+        documentType === "placementForm" ||
+        documentType === "medicalRecords"
+      ) {
+        const newFiles = [...prevStatus[documentType]];
+        newFiles.splice(index, 1);
+        return { ...prevStatus, [documentType]: newFiles };
+      } else {
+        return { ...prevStatus, [documentType]: null };
+      }
+    });
   };
 
-  console.log(
-    "Uploads: Rendering component, uploadStatus:",
-    currentUploadStatus
-  );
+  const renderFileList = (documentType: DocumentType) => {
+    const files = uploadStatus[documentType];
+
+    if (!files || (Array.isArray(files) && files.length === 0)) {
+      return <p className="text-sm text-gray-500">No files uploaded</p>;
+    }
+
+    if (Array.isArray(files)) {
+      return (
+        <div className="space-y-2">
+          {files.map((url, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-between bg-gray-100 p-2 rounded mb-2"
+            >
+              <span className="text-sm truncate" title={getDisplayName(url)}>
+                {getDisplayName(url)}
+              </span>
+              <button
+                onClick={() => handleDeleteFile(documentType, index)}
+                className="text-red-500 hover:text-red-700 ml-2 trash-uploads"
+                aria-label={`Delete ${getDisplayName(url)}`}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center justify-between bg-gray-100 p-2 rounded mb-2">
+        <span className="text-sm truncate" title={getDisplayName(files)}>
+          {getDisplayName(files)}
+        </span>
+        <button
+          onClick={() => handleDeleteFile(documentType, 0)}
+          className="text-red-500 hover:text-red-700 ml-2 trash-uploads"
+          aria-label={`Delete ${getDisplayName(files)}`}
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
+    );
+  };
 
   return (
     <div id="uploads" className="section">
       <h2 className="text-2xl font-bold mb-4">Document Uploads</h2>
       <p className="subtitle headings mb-6">Upload required documents!</p>
       <div className="document-upload grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {(Object.keys(defaultUploadStatus) as Array<keyof UploadStatus>).map(
+        {(Object.keys(defaultUploadStatus) as Array<DocumentType>).map(
           (key) => (
             <div
               key={key}
@@ -157,30 +189,23 @@ export default function Uploads({
                     {key
                       .replace(/([A-Z])/g, " $1")
                       .replace(/^./, (str) => str.toUpperCase())}
-                    {isRequired(key) && (
+                    {key !== "medicalRecords" && (
                       <span className="required text-red-500 ml-1">*</span>
                     )}
                   </div>
-                  <div
-                    className="upload-status"
-                    style={{
-                      color: uploaded[key] ? "green" : "red",
-                    }}
-                  >
-                    {getUploadStatusText(key)}
-                  </div>
                 </div>
               </div>
+              <div className="mb-4">{renderFileList(key)}</div>
               <div>
                 <input
                   type="file"
                   id={key}
-                  accept=".pdf,.jpg,.png"
-                  multiple
-                  required={isRequired(key)}
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  multiple={key === "placementForm" || key === "medicalRecords"}
+                  required={key !== "medicalRecords"}
                   className="hidden"
                   onChange={(e) => handleFileUpload(e, key)}
-                  disabled={isUploading[key]}
+                  disabled={isUploading[key] || isDisabled}
                 />
                 <label
                   htmlFor={key}

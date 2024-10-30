@@ -1,9 +1,26 @@
 import Image from "next/image";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function Sidebar() {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await fetch("/api/logout", { method: "POST" });
+    router.push("/");
+  };
+
   return (
-    <div className="sidebar">
+    <div
+      className="sidebar"
+      style={{
+        height: "100vh",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "280px",
+        overflowY: "auto",
+      }}
+    >
       <div className="sidebar-header">
         <Image
           src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/PO_logo_transparent-svdlDCdbELJnvXtecztMuFAiI1BudT.png"
@@ -52,14 +69,14 @@ export default function Sidebar() {
           </a>
         </li>
         <li>
-          <a href="#admission- documents">
+          <a href="#admission-documents">
             <span>📄</span> Admission Doc.
           </a>
         </li>
         <li>
-          <Link href="/" passHref>
+          <a href="#" onClick={handleLogout}>
             <span>🚪</span> Logout
-          </Link>
+          </a>
         </li>
       </ul>
     </div>

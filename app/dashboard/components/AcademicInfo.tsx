@@ -24,6 +24,7 @@ interface AcademicData {
 interface AcademicInfoProps {
   programme: string;
   academicInfo: AcademicData;
+  isDisabled?: boolean;
   setAcademicData: (
     field: keyof AcademicData,
     value: string | string[]
@@ -109,6 +110,7 @@ export default function AcademicInfo({
   programme,
   academicInfo,
   setAcademicData,
+  isDisabled,
 }: AcademicInfoProps) {
   const [selectedClass, setSelectedClass] = useState<string>(
     academicInfo.selectedClass
@@ -213,6 +215,7 @@ export default function AcademicInfo({
               value={selectedClass}
               onChange={handleClassChange}
               style={{ flexGrow: 1, marginRight: "10px" }}
+              disabled={isDisabled}
             >
               <option value="">Select Class</option>
               {programClasses[programme]?.map((className) => (
@@ -269,6 +272,7 @@ export default function AcademicInfo({
                   value={subject}
                   checked={selectedElectives.includes(subject)}
                   onChange={handleElectiveChange}
+                  disabled={isDisabled}
                 />
                 <label htmlFor={subject.toLowerCase().replace(/\s+/g, "-")}>
                   {subject}

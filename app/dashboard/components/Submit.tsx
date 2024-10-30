@@ -1,4 +1,6 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import { UploadStatus } from "./Uploads";
+import { Loader2 } from "lucide-react";
 
 interface ApplicantData {
   fullName: string;
@@ -8,7 +10,7 @@ interface ApplicantData {
   residence: string;
   programme: string;
   nhisNo: string;
-  enrollmentCode: string; // Add this line
+  enrollmentCode: string;
   passportPhoto: string;
   phoneNumber?: string;
 }
@@ -37,13 +39,6 @@ interface AcademicData {
   electiveSubjects: string[];
 }
 
-interface UploadStatus {
-  placementForm: string;
-  nhisCard: string;
-  idDocument: string;
-  medicalRecords: string;
-}
-
 interface SubmitProps {
   applicantData: ApplicantData;
   guardianData: GuardianData;
@@ -54,6 +49,11 @@ interface SubmitProps {
     houseAssigned: string;
   };
   uploadStatus: UploadStatus;
+  onSubmit: () => void;
+  onEdit: () => void;
+  onSave: () => void;
+  isSubmitted: boolean;
+  isEditMode: boolean;
 }
 
 export default function Submit({
@@ -63,6 +63,11 @@ export default function Submit({
   academicData,
   houseData,
   uploadStatus,
+  onSubmit,
+  onEdit,
+  onSave,
+  isSubmitted,
+  isEditMode,
 }: SubmitProps) {
   const [isDeclarationChecked, setIsDeclarationChecked] = useState(false);
   const [submissionMessage, setSubmissionMessage] = useState("");
@@ -72,6 +77,28 @@ export default function Submit({
   const [isPending, setIsPending] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
+  const [applicationNumber, setApplicationNumber] = useState("");
+  const [isGeneratingNumber, setIsGeneratingNumber] = useState(false);
+
+  const generateApplicationNumber = async (): Promise<boolean> => {
+    setIsGeneratingNumber(true);
+    try {
+      const response = await fetch("/api/get-application-number");
+      if (!response.ok) throw new Error("Failed to get application number");
+      const data = await response.json();
+      if (data.applicationNumber) {
+        setApplicationNumber(data.applicationNumber);
+        return true;
+      }
+      throw new Error("No application number received");
+    } catch (error) {
+      console.error("Error getting application number:", error);
+      setErrors((prev) => [...prev, "Failed to generate application number"]);
+      return false;
+    } finally {
+      setIsGeneratingNumber(false);
+    }
+  };
 
   const validateRequiredFields = () => {
     const newErrors: string[] = [];
@@ -82,6 +109,7 @@ export default function Submit({
       newErrors.push("Passport Photo is required");
     if (!applicantData.enrollmentCode)
       newErrors.push("Enrollment Code is required");
+
     // Check GuardianData
     if (!guardianData.guardianName) newErrors.push("Guardian Name is required");
     if (!guardianData.relationship)
@@ -106,12 +134,10 @@ export default function Submit({
       newErrors.push("At least one elective subject is required");
 
     // Check UploadStatus
-    if (uploadStatus.placementForm === "Not uploaded")
+    if (uploadStatus.placementForm.length === 0)
       newErrors.push("Placement Form is required");
-    if (uploadStatus.nhisCard === "Not uploaded")
-      newErrors.push("NHIS Card is required");
-    if (uploadStatus.idDocument === "Not uploaded")
-      newErrors.push("ID Document is required");
+    if (!uploadStatus.nhisCard) newErrors.push("NHIS Card is required");
+    if (!uploadStatus.idDocument) newErrors.push("ID Document is required");
 
     return newErrors;
   };
@@ -122,6 +148,16 @@ export default function Submit({
     setIsPending(true);
     setErrors([]);
     setSubmissionStatus("PENDING");
+
+    // Generate application number if not exists
+    if (!applicationNumber) {
+      const success = await generateApplicationNumber();
+      if (!success) {
+        setIsPending(false);
+        setSubmissionStatus("FAILED");
+        return;
+      }
+    }
 
     const validationErrors = validateRequiredFields();
     if (validationErrors.length > 0) {
@@ -138,6 +174,13 @@ export default function Submit({
       return;
     }
 
+    const formattedUploads = {
+      placementForm: uploadStatus.placementForm,
+      nhisCard: uploadStatus.nhisCard,
+      idDocument: uploadStatus.idDocument,
+      medicalRecords: uploadStatus.medicalRecords || [],
+    };
+
     const candidateData = {
       fullName: applicantData.fullName,
       indexNumber: applicantData.indexNumber,
@@ -146,7 +189,7 @@ export default function Submit({
       residence: applicantData.residence,
       programme: applicantData.programme,
       nhisNo: applicantData.nhisNo,
-      enrollmentCode: applicantData.enrollmentCode, // Add this line
+      enrollmentCode: applicantData.enrollmentCode,
       passportPhoto: applicantData.passportPhoto,
       phoneNumber: applicantData.phoneNumber || "",
       guardianInfo: guardianData,
@@ -156,28 +199,46 @@ export default function Submit({
         classCapacity: parseInt(academicData.classCapacity) || 0,
       },
       house: houseData,
-      uploads: uploadStatus,
+      uploads: formattedUploads,
+      applicationNumber: applicationNumber, // Now this is guaranteed to be a string
     };
 
-    console.log(
-      "Submitting candidate data:",
-      JSON.stringify(candidateData, null, 2)
-    );
-
+    // try {
+    //   const response = await fetch("/api/candidate", {
+    //     method: "POST",
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //     },
+    //     body: JSON.stringify(candidateData),
+    //   });
     try {
       const response = await fetch("/api/candidate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(candidateData),
+        body: JSON.stringify({
+          ...applicantData,
+          guardianInfo: guardianData,
+          additionalInfo: additionalData,
+          academicInfo: {
+            ...academicData,
+            classCapacity: parseInt(academicData.classCapacity) || 0,
+          },
+          house: houseData,
+          uploads: uploadStatus,
+          applicationNumber,
+        }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setSubmissionMessage(data.message);
+        setSubmissionMessage(
+          `Application submitted successfully! Your application number is: ${applicationNumber}`
+        );
         setSubmissionStatus("SUBMITTED");
+        onSubmit();
       } else {
         setSubmissionMessage(`Failed to submit application: ${data.error}`);
         setSubmissionStatus("FAILED");
@@ -191,12 +252,60 @@ export default function Submit({
     }
   };
 
+  const handleSaveChanges = async () => {
+    setIsPending(true);
+    try {
+      const response = await fetch("/api/candidate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...applicantData,
+          guardianInfo: guardianData,
+          additionalInfo: additionalData,
+          academicInfo: {
+            ...academicData,
+            classCapacity: parseInt(academicData.classCapacity) || 0,
+          },
+          house: houseData,
+          uploads: uploadStatus,
+          applicationNumber,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSubmissionMessage("Changes saved successfully!");
+        onSave(); // Call the onSave prop
+      } else {
+        setSubmissionMessage(`Failed to save changes: ${data.error}`);
+      }
+    } catch (error) {
+      console.error("Save error:", error);
+      setSubmissionMessage("An error occurred while saving changes.");
+    } finally {
+      setIsPending(false);
+    }
+  };
+
   return (
     <div id="submit" className="section action-section">
       <h2>Submit Application</h2>
       <p className="subtitle headings">
         Review your information before submitting!
       </p>
+      {applicationNumber && (
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
+          <p className="text-green-800 font-semibold">
+            Your Application Number: {applicationNumber}
+          </p>
+          <p className="text-sm text-green-600">
+            Please save this number for future reference
+          </p>
+        </div>
+      )}
       {submissionMessage && (
         <p
           id="applicationStatus"
@@ -228,6 +337,7 @@ export default function Submit({
                 required
                 checked={isDeclarationChecked}
                 onChange={(e) => setIsDeclarationChecked(e.target.checked)}
+                disabled={submissionStatus === "SUBMITTED" && !isEditMode}
               />
               <span
                 className={
@@ -240,14 +350,51 @@ export default function Submit({
           </label>
         </div>
 
-        <div className="">
-          <button
-            type="submit"
-            className="upload-button submit-btn"
-            disabled={isPending}
-          >
-            {isPending ? "Submitting..." : "Submit Application"}
-          </button>
+        <div className="mt-6 flex gap-4">
+          {submissionStatus === "SUBMITTED" ? (
+            isEditMode ? (
+              <button
+                type="button"
+                onClick={handleSaveChanges}
+                className="upload-button submit-btn flex-1"
+                disabled={isPending}
+              >
+                {isPending ? (
+                  <span className="flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </span>
+                ) : (
+                  "Save Changes"
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="upload-button submit-btn flex-1"
+              >
+                Edit Application
+              </button>
+            )
+          ) : (
+            <button
+              type="submit"
+              className="upload-button submit-btn flex-1"
+              disabled={isPending || isGeneratingNumber}
+            >
+              {isPending || isGeneratingNumber ? (
+                <span className="flex items-center justify-center">
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  {isGeneratingNumber
+                    ? "Generating Number..."
+                    : "Submitting..."}
+                </span>
+              ) : (
+                "Submit Application"
+              )}
+            </button>
+          )}
         </div>
       </form>
     </div>

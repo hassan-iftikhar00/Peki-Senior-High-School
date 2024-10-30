@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 interface ApplicantLoginPageProps {
   onRecoverLink: () => void;
-  onLogin: (indexNumber: string, serial: string, pin: string) => Promise<void>;
+  onLogin: (serial: string, pin: string) => Promise<void>;
   initialSerial?: string;
   initialPin?: string;
 }
@@ -31,7 +31,7 @@ export default function ApplicantLoginPage({
     setError("");
 
     try {
-      await onLogin(indexNumber, serial, pin);
+      await onLogin(serial, pin);
     } catch (error) {
       console.error("Login error:", error);
       if (error instanceof Error) {
@@ -129,28 +129,9 @@ export default function ApplicantLoginPage({
         <form onSubmit={handleSubmit}>
           <input
             type="text"
-            value={indexNumber}
-            onChange={(e) => setIndexNumber(e.target.value)}
-            placeholder="Enter index number"
-            style={{
-              width: "80%",
-              padding: "12px",
-              border: "1px solid #ccc",
-              borderRadius: "8px",
-              fontSize: "14px",
-              marginBottom: "8px",
-              marginLeft: "auto",
-              marginRight: "auto",
-              display: "block",
-              backgroundColor: "#f0f0f0",
-            }}
-            required
-          />
-          <input
-            type="text"
             value={serial}
             onChange={(e) => setSerial(e.target.value)}
-            placeholder="Enter Serial"
+            placeholder="Enter Serial No."
             style={{
               width: "80%",
               padding: "12px",
@@ -165,7 +146,14 @@ export default function ApplicantLoginPage({
             }}
             required
           />
-          <div style={{ position: "relative" }}>
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
             <input
               type={showPin ? "text" : "password"}
               value={pin}
@@ -190,12 +178,14 @@ export default function ApplicantLoginPage({
               onClick={togglePinVisibility}
               style={{
                 position: "absolute",
-                right: "-23%",
-                top: "50%",
-                transform: "translateY(-50%)",
+                right: "-12%",
+                // top: "50%",
+                // transform: "translateY(-50%)",
                 background: "none",
                 border: "none",
                 cursor: "pointer",
+                margin: 0,
+                width: "141px",
               }}
             >
               {showPin ? (

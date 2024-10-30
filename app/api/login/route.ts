@@ -13,19 +13,15 @@ if (!JWT_SECRET) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { indexNumber, serial, pin } = await request.json();
+    const { serial, pin } = await request.json();
 
     console.log("Received login attempt:");
-    console.log("Index Number:", indexNumber);
     console.log("Serial:", serial);
 
     await connectToDatabase();
     console.log("Connected to MongoDB");
 
-    const candidate = await Candidate.findOne({
-      indexNumber,
-      serialNumber: serial,
-    });
+    const candidate = await Candidate.findOne({ serialNumber: serial });
 
     if (!candidate) {
       console.log("No candidate found for the provided credentials");

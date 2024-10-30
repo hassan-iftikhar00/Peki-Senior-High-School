@@ -2,7 +2,12 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 
-export default function TopBar({ applicantName }: { applicantName: string }) {
+interface TopBarProps {
+  applicantName: string;
+  passportPhoto?: string;
+}
+
+export default function TopBar({ applicantName, passportPhoto }: TopBarProps) {
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -10,26 +15,25 @@ export default function TopBar({ applicantName }: { applicantName: string }) {
     router.push("/");
   };
 
+  const avatarSrc =
+    passportPhoto ||
+    "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/blank-CRJbfovrhtk24KR2rQYdS4Fjnr2BpU.jpg";
+
   return (
     <div
       className="top-bar"
       style={{
+        position: "fixed",
+        top: 0,
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "center",
-        padding: "10px 20px",
-        backgroundColor: "#f0f0f0",
-        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+        left: "280px",
+        right: 0,
+        zIndex: 1000,
+        width: "calc(100vw - 280px)",
       }}
     >
-      <div
-        className="school-name"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-        }}
-      >
+      <div className="school-name">
         <div className="TopBarItems">
           <Image
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/pesco-ypQANIO5MV7swwJQueIYrxVza3zlu1.jpg"
@@ -43,33 +47,22 @@ export default function TopBar({ applicantName }: { applicantName: string }) {
           <span style={{ fontWeight: "bold" }}> Peki Senior High School</span>
         </div>
       </div>
-      <div
-        className="user-info"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-        }}
-      >
+      <div className="user-info">
         <div className="TopBarItems">
           <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/blank-CRJbfovrhtk24KR2rQYdS4Fjnr2BpU.jpg"
+            src={avatarSrc}
             alt="User Avatar"
             width={32}
             height={32}
             className="user-avatar"
-            style={{ borderRadius: "50%" }}
+            style={{ borderRadius: "50%", objectFit: "cover" }}
           />
         </div>
         <div
           className="TopBarItems"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-          }}
+          style={{ display: "flex", alignItems: "center", gap: "10px" }}
         >
-          <span>{applicantName}</span>
+          <span style={{ width: "100px" }}>{applicantName}</span>
           <button
             onClick={handleLogout}
             className="logout-button"

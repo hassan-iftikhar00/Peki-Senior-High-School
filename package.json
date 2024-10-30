@@ -20,6 +20,7 @@
     "mongoose": "^8.7.2",
     "next": "^15.0.0",
     "next-connect": "^1.0.0",
+    "pdf-lib": "^1.17.1",
     "react": "^19.0.0-rc-65a56d0e-20241020",
     "react-dom": "^19.0.0-rc-65a56d0e-20241020",
     "tailwind-merge": "^2.5.4"

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface AdditionalInfoData {
   presentAddress: string;
@@ -11,13 +11,25 @@ interface AdditionalInfoData {
 
 interface AdditionalInfoProps {
   additionalInfo: AdditionalInfoData;
+  isDisabled?: boolean;
   onChange: (field: keyof AdditionalInfoData, value: string) => void;
 }
 
 export default function AdditionalInfo({
   additionalInfo,
   onChange,
+  isDisabled,
 }: AdditionalInfoProps) {
+  const [beceYears, setBeceYears] = useState<string[]>([]);
+
+  useEffect(() => {
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 5 }, (_, i) =>
+      (currentYear - i).toString()
+    );
+    setBeceYears(years);
+  }, []);
+
   return (
     <div className="section">
       <h2>Additional Information</h2>
@@ -31,6 +43,7 @@ export default function AdditionalInfo({
             value={additionalInfo.presentAddress}
             onChange={(e) => onChange("presentAddress", e.target.value)}
             required
+            disabled={isDisabled}
           />
         </div>
 
@@ -43,6 +56,7 @@ export default function AdditionalInfo({
             value={additionalInfo.nationality}
             onChange={(e) => onChange("nationality", e.target.value)}
             required
+            disabled={isDisabled}
           >
             <option value="">Select Nationality</option>
             <option value="ghanaian">Ghanaian</option>
@@ -61,6 +75,7 @@ export default function AdditionalInfo({
             value={additionalInfo.homeTown}
             onChange={(e) => onChange("homeTown", e.target.value)}
             required
+            disabled={isDisabled}
           />
         </div>
 
@@ -73,6 +88,7 @@ export default function AdditionalInfo({
             value={additionalInfo.religion}
             onChange={(e) => onChange("religion", e.target.value)}
             required
+            disabled={isDisabled}
           >
             <option value="">Select Religion</option>
             <option value="christianity">Christianity</option>
@@ -92,6 +108,7 @@ export default function AdditionalInfo({
             value={additionalInfo.previousSchool}
             onChange={(e) => onChange("previousSchool", e.target.value)}
             required
+            disabled={isDisabled}
           />
         </div>
 
@@ -104,13 +121,14 @@ export default function AdditionalInfo({
             value={additionalInfo.beceYear}
             onChange={(e) => onChange("beceYear", e.target.value)}
             required
+            disabled={isDisabled}
           >
             <option value="">Select BECE Year</option>
-            <option value="2024">2024</option>
-            <option value="2023">2023</option>
-            <option value="2022">2022</option>
-            <option value="2021">2021</option>
-            <option value="2020">2020</option>
+            {beceYears.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
           </select>
         </div>
       </form>

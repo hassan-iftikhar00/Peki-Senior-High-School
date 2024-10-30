@@ -18,6 +18,7 @@ interface ApplicantPopupProps {
   showLogin: () => void;
   onBuyVoucher: (phoneNumber: string) => void;
 }
+
 export default function ApplicantPopup({
   onClose,
   candidateInfo,
@@ -30,13 +31,14 @@ export default function ApplicantPopup({
   const [clientReference, setClientReference] = useState("");
   const [voucherSent, setVoucherSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const router = useRouter();
 
   const handleBuyVoucher = () => {
     if (phoneNumber.length === 10 && phoneNumber[0] === "0") {
       onBuyVoucher(phoneNumber);
     } else {
-      alert("Please enter a valid phone number.");
+      setError("Please enter a valid phone number.");
     }
   };
 
@@ -71,12 +73,26 @@ export default function ApplicantPopup({
 
       if (data.success) {
         setClientReference(data.clientReference);
-        // Open the payment iframe
+
+        // Center the payment popup
+        const width = 500;
+        const height = 600;
+        const left = Math.max(0, (window.screen.width - width) / 2);
+        const top = Math.max(0, (window.screen.height - height) / 2);
+
         const paymentWindow = window.open(
           data.checkoutDirectUrl,
           "Payment",
-          "width=500,height=600"
+          `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
         );
+
+        if (paymentWindow) {
+          paymentWindow.focus();
+        } else {
+          setError(
+            "Popup blocked. Please allow popups for this site and try again."
+          );
+        }
 
         // Start checking for payment status
         checkPaymentStatus(data.clientReference);
@@ -114,8 +130,6 @@ export default function ApplicantPopup({
         } else if (data.success && data.status === "Unpaid") {
           attempts++;
           setTimeout(checkStatus, 25000); // Check again after 25 seconds
-        } else {
-          setError("Payment failed or status unknown. Please try again.");
         }
       } catch (error) {
         console.error("Error checking payment status:", error);
@@ -131,6 +145,7 @@ export default function ApplicantPopup({
     if (isPhoneValid && isPaid) {
       setIsLoading(true);
       setError(null);
+      setSuccessMessage(null);
       try {
         const response = await fetch("/api/generate-voucher", {
           method: "POST",
@@ -147,10 +162,10 @@ export default function ApplicantPopup({
 
         if (data.success) {
           setVoucherSent(true);
-          showLogin();
-          alert(
+          setSuccessMessage(
             "Voucher generated and sent successfully! Please check your phone for the SMS."
           );
+          showLogin();
         } else {
           throw new Error(data.error || "Failed to generate voucher");
         }
@@ -158,9 +173,13 @@ export default function ApplicantPopup({
         console.error("Error:", error);
 
         if (error instanceof Error) {
-          setError(`Failed to generate voucher: ${error.message}`);
+          setError(
+            "An error occurred while generating the voucher. If you have paid, please contact the administrator for assistance."
+          );
         } else {
-          setError("An unknown error occurred.");
+          setError(
+            "An unknown error occurred. If you have paid, please contact the administrator for assistance."
+          );
         }
       } finally {
         setIsLoading(false);
@@ -206,7 +225,16 @@ export default function ApplicantPopup({
           </div>
           {error && (
             <div className="error-box">
-              <p className="error-text">{error}</p>
+              <p className="error-text" style={{ color: "red" }}>
+                {error}
+              </p>
+            </div>
+          )}
+          {successMessage && (
+            <div className="success-box">
+              <p className="success-text" style={{ color: "green" }}>
+                {successMessage}
+              </p>
             </div>
           )}
           {!isPaid && (

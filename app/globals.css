@@ -14,7 +14,7 @@ body {
   background-color: white;
   border-radius: 16px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  width: 260px;
+  width: 290px;
   padding: 20px;
   text-align: center;
   min-height: 450px;
@@ -62,7 +62,7 @@ input {
   margin-top: 20px;
   background-color: none;
 }
-button:not(.eye-button.close-button) {
+button:not(.eye-button):not(.logout-button):not(.trash-uploads) {
   width: 80%;
   background-color: #1a1a2e;
   color: white;

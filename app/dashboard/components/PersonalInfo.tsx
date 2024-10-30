@@ -18,12 +18,14 @@ interface ApplicantData {
 
 interface PersonalInfoProps {
   applicantData: ApplicantData;
+  isDisabled?: boolean;
   onChange: (field: keyof ApplicantData, value: string) => void;
 }
 
 export default function PersonalInfo({
   applicantData,
   onChange,
+  isDisabled,
 }: PersonalInfoProps) {
   const [passportPhoto, setPassportPhoto] = useState<string>(
     applicantData.passportPhoto || "/user.png"
@@ -151,6 +153,7 @@ export default function PersonalInfo({
             name="nhisNo"
             value={applicantData.nhisNo}
             required
+            disabled={isDisabled}
           />
         </div>
         <div className="form-group">
@@ -164,6 +167,7 @@ export default function PersonalInfo({
             name="enrollmentCode"
             value={applicantData.enrollmentCode}
             required
+            disabled={isDisabled}
           />
         </div>
         <div className="form-group">
@@ -177,6 +181,7 @@ export default function PersonalInfo({
             name="phoneNumber"
             value={applicantData.phoneNumber}
             required
+            disabled={isDisabled}
           />
         </div>
         <div className="passport-photo">
@@ -190,7 +195,7 @@ export default function PersonalInfo({
             onChange={handlePassportUpload}
             required
             className="hidden"
-            disabled={isUploading}
+            disabled={isUploading || isDisabled}
           />
           <Image
             src={passportPhoto}
