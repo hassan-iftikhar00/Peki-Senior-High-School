@@ -231,13 +231,13 @@ async function generatePDF(
 
   return await pdfDoc.save();
 }
+
 export async function POST(
   request: NextRequest,
-  context: { params: { type: string } }
+  { params }: { params: { type: string } }
 ) {
   try {
-    // Properly destructure and await the context
-    const { type } = context.params;
+    const { type } = params;
     const data = await request.json();
     console.log("Received data for PDF generation:", data);
 
