@@ -9,6 +9,49 @@ const PDF_TEMPLATES = {
     "https://res.cloudinary.com/dah9roj2d/image/upload/v1730247831/yp2rtvahwinj1mevvdui.pdf",
 };
 
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { type: string } }
+) {
+  try {
+    const { type } = params;
+    const data = await request.json();
+
+    console.log("Received data for PDF generation:", data);
+
+    const documentType = type as "admissionLetter" | "personalRecord";
+    if (!["admissionLetter", "personalRecord"].includes(documentType)) {
+      return NextResponse.json(
+        { error: "Invalid document type" },
+        { status: 400 }
+      );
+    }
+
+    if (!data.applicationNumber) {
+      return NextResponse.json(
+        { error: "Application number is required" },
+        { status: 400 }
+      );
+    }
+
+    const pdfBytes = await generatePDF(data, documentType);
+
+    return new NextResponse(pdfBytes, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${documentType}-${data.indexNumber}-${data.applicationNumber}.pdf"`,
+        "Content-Length": pdfBytes.length.toString(),
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+      },
+    });
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    return NextResponse.json(
+      { error: "Failed to generate PDF" },
+      { status: 500 }
+    );
+  }
+}
 interface TextPosition {
   x: number;
   y: number;
@@ -21,9 +64,6 @@ interface TemplateCoordinates {
   [key: string]: TextPosition;
 }
 
-interface RouteContext {
-  params: { type: string };
-}
 // Define coordinates for text placement - adjust these based on your templates
 const ADMISSION_LETTER_COORDINATES: TemplateCoordinates = {
   passportPhoto: { x: 408, y: 490, width: 120, height: 120 }, // Add photo coordinates
@@ -233,43 +273,4 @@ async function generatePDF(
   }
 
   return await pdfDoc.save();
-}
-
-export async function POST(request: NextRequest, context: RouteContext) {
-  try {
-    const { type } = context.params;
-    const data = await request.json();
-    console.log("Received data for PDF generation:", data);
-
-    const documentType = type as "admissionLetter" | "personalRecord";
-    if (!["admissionLetter", "personalRecord"].includes(documentType)) {
-      return NextResponse.json(
-        { error: "Invalid document type" },
-        { status: 400 }
-      );
-    }
-
-    if (!data.applicationNumber) {
-      return NextResponse.json(
-        { error: "Application number is required" },
-        { status: 400 }
-      );
-    }
-
-    const pdfBytes = await generatePDF(data, documentType);
-    return new NextResponse(pdfBytes, {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${documentType}-${data.indexNumber}-${data.applicationNumber}.pdf"`,
-        "Content-Length": pdfBytes.length.toString(),
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-      },
-    });
-  } catch (error) {
-    console.error("Error generating PDF:", error);
-    return NextResponse.json(
-      { error: "Failed to generate PDF" },
-      { status: 500 }
-    );
-  }
 }
