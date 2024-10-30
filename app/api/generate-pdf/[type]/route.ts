@@ -21,6 +21,9 @@ interface TemplateCoordinates {
   [key: string]: TextPosition;
 }
 
+interface RouteContext {
+  params: { type: string };
+}
 // Define coordinates for text placement - adjust these based on your templates
 const ADMISSION_LETTER_COORDINATES: TemplateCoordinates = {
   passportPhoto: { x: 408, y: 490, width: 120, height: 120 }, // Add photo coordinates
@@ -232,10 +235,7 @@ async function generatePDF(
   return await pdfDoc.save();
 }
 
-export async function POST(
-  request: NextRequest,
-  context: { params: { type: string } }
-) {
+export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const { type } = context.params;
     const data = await request.json();
