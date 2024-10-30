@@ -75,7 +75,7 @@ export default function AdmissionDocuments({
   }, [candidateData]);
 
   const handleProspectusDownload = async () => {
-    setLoadingMessage(`Generating ${DocumentType}...`);
+    setLoadingMessage(`Generating PDF`);
     try {
       // Replace with your actual Cloudinary JPG URL
       const prospectusUrl =
@@ -111,7 +111,7 @@ export default function AdmissionDocuments({
   const handleClick = async (
     documentType: "admissionLetter" | "personalRecord"
   ) => {
-    setLoadingMessage(`Generating ${documentType}...`);
+    setLoadingMessage(`Downloading Prospectus`);
 
     if (!candidateData.applicationNumber) {
       alert("Application number is required to generate documents");
