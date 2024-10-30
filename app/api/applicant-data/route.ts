@@ -78,13 +78,14 @@ export async function GET(request: NextRequest) {
       programme: candidate.programme,
       nhisNo: candidate.nhisNo || "",
       enrollmentCode: candidate.enrollmentCode || "", // Add this line
-      houseAssigned: candidate.houseAssigned || "",
+      houseAssigned: candidate.house?.houseAssigned || "",
       passportPhoto: candidate.passportPhoto || "",
       phoneNumber: candidate.phoneNumber || "",
       guardianInfo: candidate.guardianInfo || {},
       additionalInfo: candidate.additionalInfo || {},
       academicInfo: candidate.academicInfo || {},
       uploads: candidate.uploads || {},
+      applicationNumber: candidate.applicationNumber,
     };
 
     console.log("Applicant data API: Sending applicant data");

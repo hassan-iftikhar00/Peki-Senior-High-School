@@ -1,11 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { UploadStatus } from "./Uploads";
 import { Loader2 } from "lucide-react";
+import LoadingOverlay from "@/components/LoadingOverlay";
 
 interface ApplicantData {
   fullName: string;
   indexNumber: string;
   gender: string;
+  houseAssigned: string;
   aggregate: string;
   residence: string;
   programme: string;
@@ -13,6 +15,7 @@ interface ApplicantData {
   enrollmentCode: string;
   passportPhoto: string;
   phoneNumber?: string;
+  applicationNumber?: string;
 }
 
 interface GuardianData {
@@ -79,6 +82,18 @@ export default function Submit({
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   const [applicationNumber, setApplicationNumber] = useState("");
   const [isGeneratingNumber, setIsGeneratingNumber] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
+
+  useEffect(() => {
+    // If the application was previously submitted, set the status accordingly
+    if (isSubmitted) {
+      setSubmissionStatus("SUBMITTED");
+      // If there's an application number in the props, set it
+      if (applicantData.applicationNumber) {
+        setApplicationNumber(applicantData.applicationNumber);
+      }
+    }
+  }, [isSubmitted, applicantData.applicationNumber]);
 
   const generateApplicationNumber = async (): Promise<boolean> => {
     setIsGeneratingNumber(true);
@@ -202,7 +217,7 @@ export default function Submit({
       uploads: formattedUploads,
       applicationNumber: applicationNumber, // Now this is guaranteed to be a string
     };
-
+    setLoadingMessage("Submitting your application...");
     // try {
     //   const response = await fetch("/api/candidate", {
     //     method: "POST",
@@ -248,6 +263,7 @@ export default function Submit({
       setSubmissionMessage("An error occurred during submission.");
       setSubmissionStatus("FAILED");
     } finally {
+      setLoadingMessage("");
       setIsPending(false);
     }
   };
@@ -292,16 +308,17 @@ export default function Submit({
 
   return (
     <div id="submit" className="section action-section">
+      <LoadingOverlay isVisible={!!loadingMessage} message={loadingMessage} />
       <h2>Submit Application</h2>
       <p className="subtitle headings">
         Review your information before submitting!
       </p>
       {applicationNumber && (
-        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
-          <p className="text-green-800 font-semibold">
-            Your Application Number: {applicationNumber}
+        <div className="application-number-container">
+          <p className="application-number">
+            Your Application Number: <span>{applicationNumber}</span>
           </p>
-          <p className="text-sm text-green-600">
+          <p className="reference-text">
             Please save this number for future reference
           </p>
         </div>

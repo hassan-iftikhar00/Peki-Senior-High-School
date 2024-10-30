@@ -102,8 +102,9 @@ export default function Dashboard() {
           };
         }
         setApplicantData(data);
-        // Set submission status based on whether application number exists
-        setIsSubmitted(!!data.applicationNumber);
+        const wasSubmitted = !!data.applicationNumber;
+        setIsSubmitted(wasSubmitted);
+        setIsEditMode(!wasSubmitted);
       } else {
         throw new Error("No applicant data found");
       }
@@ -195,7 +196,15 @@ export default function Dashboard() {
     [isSubmitted, isEditMode] // Add these dependencies
   );
 
-  const handleSubmissionComplete = useCallback(() => {
+  const handleSubmissionComplete = useCallback((applicationNumber: string) => {
+    setApplicantData((prev) =>
+      prev
+        ? {
+            ...prev,
+            applicationNumber,
+          }
+        : null
+    );
     setIsSubmitted(true);
   }, []);
 

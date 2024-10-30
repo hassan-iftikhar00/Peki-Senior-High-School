@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { uploadToCloudinary } from "@/app/utils/cloudinary";
+import LoadingOverlay from "@/components/LoadingOverlay";
 
 interface ApplicantData {
   fullName: string;
@@ -31,6 +32,7 @@ export default function PersonalInfo({
     applicantData.passportPhoto || "/user.png"
   );
   const [isUploading, setIsUploading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
 
   useEffect(() => {
     console.log("PersonalInfo received applicantData:", applicantData);
@@ -51,6 +53,7 @@ export default function PersonalInfo({
   ) => {
     const file = event.target.files?.[0];
     if (file) {
+      setLoadingMessage("Uploading file...");
       setIsUploading(true);
       try {
         const cloudinaryUrl = await uploadToCloudinary(file);
@@ -60,6 +63,7 @@ export default function PersonalInfo({
         console.error("Error uploading passport photo:", error);
         alert("Failed to upload passport photo. Please try again.");
       } finally {
+        setLoadingMessage("");
         setIsUploading(false);
       }
     }
@@ -67,6 +71,7 @@ export default function PersonalInfo({
 
   return (
     <div id="personal-info" className="section">
+      <LoadingOverlay isVisible={!!loadingMessage} message={loadingMessage} />
       <h2>Personal Information</h2>
       <p className="subtitle headings">
         Please provide your personal details accurately!

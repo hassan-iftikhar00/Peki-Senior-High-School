@@ -8,6 +8,7 @@ import EmptyErrorPopup from "../components/EmptyErrorPopup";
 import InvalidIndexPopup from "../components/InvalidIndexPopup";
 import ApplicantPopup from "../components/ApplicantPopup";
 import RecoverLoginPopup from "../components/RecoverLoginPopup";
+import LoadingOverlay from "@/components/LoadingOverlay";
 
 interface CandidateInfo {
   fullName: string;
@@ -30,6 +31,8 @@ export default function Home() {
   const [candidateInfo, setCandidateInfo] = useState<CandidateInfo | null>(
     null
   );
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,6 +78,7 @@ export default function Home() {
       return;
     }
 
+    setVerifyLoading(true);
     try {
       const response = await fetch("/api/verify", {
         method: "POST",
@@ -99,10 +103,13 @@ export default function Home() {
       console.error("Error verifying index number:", error);
       setShowInvalidIndex(true);
       setTimeout(() => setShowInvalidIndex(false), 5000);
+    } finally {
+      setVerifyLoading(false);
     }
   };
 
   const handleLogin = async (serial: string, pin: string) => {
+    setLoginLoading(true);
     try {
       console.log("Attempting login...");
       const response = await fetch("/api/login", {
@@ -114,22 +121,19 @@ export default function Home() {
       const data = await response.json();
 
       if (data.success) {
-        console.log("Login successful, received token:", data.token);
         document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Strict`;
-        console.log("Token set in cookie:", document.cookie);
         localStorage.setItem("token", data.token);
-        console.log("Token stored in localStorage");
         setTimeout(() => {
-          console.log("Redirecting to dashboard...");
           router.push("/dashboard");
         }, 1000);
       } else {
-        console.error("Login failed:", data.error);
         setError(data.error || "Invalid credentials. Please try again.");
       }
     } catch (error) {
       console.error("Login error:", error);
       setError("An error occurred during login. Please try again.");
+    } finally {
+      setLoginLoading(false);
     }
   };
 
@@ -226,6 +230,15 @@ export default function Home() {
 
   return (
     <main>
+      <LoadingOverlay
+        isVisible={isLoading}
+        message="Checking authentication status..."
+      />
+      <LoadingOverlay
+        isVisible={verifyLoading}
+        message="Verifying index number..."
+      />
+      <LoadingOverlay isVisible={loginLoading} message="Logging in..." />
       {showVerifyIndex && <VerifyIndexPage onVerify={handleVerify} />}
       {showApplicantLogin && (
         <ApplicantLoginPage

@@ -2,46 +2,60 @@
 
 import { useState, useEffect } from "react";
 import { Download, Loader2 } from "lucide-react";
+import LoadingOverlay from "@/components/LoadingOverlay";
 
-interface CandidateData {
+interface ApplicantData {
   fullName: string;
   indexNumber: string;
   gender: string;
-  aggregate: number | string;
+  aggregate: string;
   residence: string;
   programme: string;
   nhisNo: string;
   enrollmentCode: string;
-  dateOfBirth?: string;
-  phoneNumber: string;
-  guardianInfo: {
-    guardianName: string;
-    relationship: string;
-    phoneNumber: string;
-    whatsappNumber?: string;
-    email?: string;
-  };
-  additionalInfo: {
-    presentAddress: string;
-    nationality: string;
-    homeTown: string;
-    religion: string;
-    previousSchool: string;
-    beceYear: string;
-  };
-  uploads: {
-    placementForm: any[];
-    nhisCard: any;
-    idDocument: any;
-    medicalRecords: any[];
-  };
   houseAssigned: string;
+  passportPhoto: string;
+  phoneNumber: string;
+  guardianInfo: GuardianData;
+  additionalInfo: AdditionalInfoData;
+  academicInfo: AcademicData;
+  uploads: UploadStatus;
   applicationNumber?: string;
-  class?: string;
+}
+
+interface GuardianData {
+  guardianName: string;
+  relationship: string;
+  phoneNumber: string;
+  whatsappNumber?: string;
+  email?: string;
+}
+
+interface AdditionalInfoData {
+  presentAddress: string;
+  nationality: string;
+  homeTown: string;
+  religion: string;
+  previousSchool: string;
+  beceYear: string;
+}
+
+interface AcademicData {
+  selectedClass: string;
+  classCapacity: string;
+  coreSubjects: string[];
+  electiveSubjects: string[];
+}
+
+interface UploadStatus {
+  placementForm: any[];
+  nhisCard: any;
+  idDocument: any;
+  medicalRecords: any[];
 }
 
 interface AdmissionDocumentsProps {
-  candidateData: CandidateData;
+  candidateData: ApplicantData;
 }
 
 export default function AdmissionDocuments({
@@ -54,59 +68,77 @@ export default function AdmissionDocuments({
     admissionLetter: false,
     personalRecord: false,
   });
+  const [loadingMessage, setLoadingMessage] = useState("");
 
-  // Add effect to log data when component mounts or data changes
   useEffect(() => {
-    console.log("AdmissionDocuments mounted/updated with data:", candidateData);
+    console.log("AdmissionDocuments received data:", candidateData);
   }, [candidateData]);
+
+  const handleProspectusDownload = async () => {
+    setLoadingMessage(`Generating ${DocumentType}...`);
+    try {
+      // Replace with your actual Cloudinary JPG URL
+      const prospectusUrl =
+        "https://res.cloudinary.com/dah9roj2d/image/upload/v1730303171/ctnvh3kr5kqtrsibf4dg.jpg";
+
+      // Fetch the image
+      const response = await fetch(prospectusUrl);
+      if (!response.ok) throw new Error("Failed to fetch prospectus");
+
+      // Get the blob from the response
+      const blob = await response.blob();
+
+      // Create object URL from blob
+      const url = window.URL.createObjectURL(blob);
+
+      // Create temporary link and trigger download
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "peki-shs-prospectus.jpg"; // Changed extension to .jpg
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      setLoadingMessage("");
+    } catch (error) {
+      console.error("Error downloading prospectus:", error);
+      alert("Failed to download prospectus. Please try again.");
+    }
+  };
 
   const handleClick = async (
     documentType: "admissionLetter" | "personalRecord"
   ) => {
-    console.log(`Button clicked for ${documentType}`);
+    setLoadingMessage(`Generating ${documentType}...`);
 
-    if (!candidateData) {
-      console.error("No candidate data available");
-      alert("No candidate data available");
+    if (!candidateData.applicationNumber) {
+      alert("Application number is required to generate documents");
       return;
     }
 
     setIsGenerating((prev) => ({ ...prev, [documentType]: true }));
 
     try {
-      const apiUrl = `/api/generate-pdf/${documentType}`;
-      console.log("Making API request to:", apiUrl);
-      console.log("With data:", candidateData);
-
-      const response = await fetch(apiUrl, {
+      const response = await fetch(`/api/generate-pdf/${documentType}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...candidateData,
-          documentType,
-        }),
+        body: JSON.stringify(candidateData),
       });
 
-      console.log("Response status:", response.status);
-      console.log("Response headers:", Object.fromEntries(response.headers));
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response:", errorText);
-        throw new Error(`Failed to generate PDF: ${errorText}`);
+        const errorData = await response.text();
+        throw new Error(errorData);
       }
 
       const blob = await response.blob();
-      console.log("Received blob:", blob);
-
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${documentType}-${
-        candidateData.indexNumber || "unknown"
-      }.pdf`;
+      link.download = `${documentType}-${candidateData.indexNumber}-${candidateData.applicationNumber}.pdf`;
 
       document.body.appendChild(link);
       link.click();
@@ -114,98 +146,81 @@ export default function AdmissionDocuments({
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error generating PDF:", error);
-      // alert(
-      //   error instanceof Error ? error.message : "Failed to generate document"
-      // );
+      alert(
+        error instanceof Error ? error.message : "Failed to generate document"
+      );
     } finally {
+      setLoadingMessage("");
       setIsGenerating((prev) => ({ ...prev, [documentType]: false }));
     }
   };
 
-  // For testing - remove in production
-  const testData = {
-    ...candidateData,
-    applicationNumber: candidateData.applicationNumber || "TEST-123",
-  };
-
   return (
     <div id="admission-documents" className="section action-section">
+      <LoadingOverlay isVisible={!!loadingMessage} message={loadingMessage} />
       <h2>Admission Documents</h2>
       <p className="subtitle headings">Download your admission documents!</p>
 
-      {/* <div className="mb-4">
-        <p className="text-sm">
-          Application Number: {testData.applicationNumber}
-        </p>
-        <p className="text-sm">Index Number: {testData.indexNumber}</p>
-      </div> */}
+      {candidateData.applicationNumber ? (
+        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded text-download">
+          <p className="text-download-status">
+            You can now download your admission documents
+          </p>
+        </div>
+      ) : (
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded text-download">
+          <p className="text-yellow-800">
+            Please submit your application to generate admission documents
+          </p>
+        </div>
+      )}
 
       <div className="action-buttons space-y-4">
         <button
           className="action-button primary w-full flex items-center justify-center gap-2 p-3 rounded"
-          onClick={() => handleClick("admissionLetter")}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          // Temporarily remove disabled state for testing
-          // disabled={isGenerating.admissionLetter || !candidateData.applicationNumber}
+          onClick={() => handleClick("personalRecord")}
+          disabled={
+            isGenerating.personalRecord || !candidateData.applicationNumber
+          }
         >
-          {isGenerating.admissionLetter ? (
+          {isGenerating.personalRecord ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin download-btn-mar" />
               Generating...
             </>
           ) : (
             <>
-              <Download className="w-4 h-4" style={{ marginRight: "15px" }} />
+              <Download className="w-4 h-4 download-btn-mar" />
+              Download Personal Record
+            </>
+          )}
+        </button>
+        <button
+          className="action-button primary w-full flex items-center justify-center gap-2 p-3 rounded"
+          onClick={() => handleClick("admissionLetter")}
+          disabled={isGenerating.admissionLetter}
+        >
+          {isGenerating.admissionLetter ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin download-btn-mar" />
+              Generating...
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4 download-btn-mar" />
               Download Admission Letter
             </>
           )}
         </button>
 
         <button
-          className="action-button primary w-full flex items-center justify-center gap-2 p-3 rounded"
-          onClick={() => handleClick("personalRecord")}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          // Temporarily remove disabled state for testing
-          // disabled={isGenerating.personalRecord || !candidateData.applicationNumber}
+          className="action-button secondary w-full flex items-center justify-center gap-2 p-3 rounded bg-green-600 hover:bg-green-700 text-white"
+          onClick={handleProspectusDownload}
         >
-          {isGenerating.personalRecord ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <Download className="w-4 h-4" style={{ marginRight: "15px" }} />
-              Download Personal Record
-            </>
-          )}
+          <Download className="w-4 h-4 download-btn-mar" />
+          Download Prospectus
         </button>
       </div>
-
-      {/* Debug Information */}
-      {/* <div className="mt-4 p-4 bg-gray-100 rounded text-sm">
-        <h3 className="font-bold mb-2">Debug Info:</h3>
-        <pre className="whitespace-pre-wrap">
-          {JSON.stringify(
-            {
-              hasApplicationNumber: Boolean(candidateData.applicationNumber),
-              applicationNumber: candidateData.applicationNumber,
-              isGeneratingLetter: isGenerating.admissionLetter,
-              isGeneratingRecord: isGenerating.personalRecord,
-            },
-            null,
-            2
-          )}
-        </pre>
-      </div> */}
     </div>
   );
 }

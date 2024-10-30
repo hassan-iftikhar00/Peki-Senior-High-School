@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { uploadToCloudinary } from "../../utils/cloudinary";
 import { Trash2 } from "lucide-react";
+import LoadingOverlay from "@/components/LoadingOverlay";
 
 export interface UploadStatus {
   placementForm: string[];
@@ -39,6 +40,7 @@ export default function Uploads({
   });
 
   const [fileNames, setFileNames] = useState<Record<string, string>>({});
+  const [loadingMessage, setLoadingMessage] = useState("");
   const [isUploading, setIsUploading] = useState<Record<DocumentType, boolean>>(
     {
       placementForm: false,
@@ -61,6 +63,7 @@ export default function Uploads({
     event: React.ChangeEvent<HTMLInputElement>,
     documentType: DocumentType
   ) => {
+    setLoadingMessage("Uploading file...");
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
@@ -100,6 +103,7 @@ export default function Uploads({
       console.error(`Error uploading ${documentType}:`, error);
       alert(`Failed to upload ${documentType}. Please try again.`);
     } finally {
+      setLoadingMessage("");
       setIsUploading((prev) => ({ ...prev, [documentType]: false }));
     }
   };
@@ -168,6 +172,7 @@ export default function Uploads({
 
   return (
     <div id="uploads" className="section">
+      <LoadingOverlay isVisible={!!loadingMessage} message={loadingMessage} />
       <h2 className="text-2xl font-bold mb-4">Document Uploads</h2>
       <p className="subtitle headings mb-6">Upload required documents!</p>
       <div className="document-upload grid gap-6 md:grid-cols-2 lg:grid-cols-4">

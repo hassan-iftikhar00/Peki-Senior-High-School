@@ -18,6 +18,7 @@ export async function POST(request: Request) {
           indexNumber: candidate.indexNumber,
           programme: candidate.programme,
           gender: candidate.gender,
+          houseAssigned: candidate.houseAssigned || "",
           residence: candidate.residence,
           aggregate: candidate.aggregate,
         },
