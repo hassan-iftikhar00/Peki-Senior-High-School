@@ -11,6 +11,8 @@ export async function POST(request: Request) {
     const candidate = await Candidate.findOne({ indexNumber });
 
     if (candidate) {
+      console.log("Found candidate:", JSON.stringify(candidate, null, 2));
+      console.log("feePaid value:", candidate.feePaid);
       return NextResponse.json({
         verified: true,
         candidateInfo: {
@@ -18,12 +20,14 @@ export async function POST(request: Request) {
           indexNumber: candidate.indexNumber,
           programme: candidate.programme,
           gender: candidate.gender,
-          houseAssigned: candidate.houseAssigned || "",
+          houseAssigned: candidate.house?.houseAssigned || "",
           residence: candidate.residence,
           aggregate: candidate.aggregate,
+          feePaid: candidate.feePaid, // Ensure this field is included
         },
       });
     } else {
+      console.log("Candidate not found for index number:", indexNumber);
       return NextResponse.json({ verified: false }, { status: 404 });
     }
   } catch (error) {

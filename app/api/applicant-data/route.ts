@@ -86,6 +86,8 @@ export async function GET(request: NextRequest) {
       academicInfo: candidate.academicInfo || {},
       uploads: candidate.uploads || {},
       applicationNumber: candidate.applicationNumber,
+      feePaid: candidate.feePaid,
+      houseId: candidate.houseId,
     };
 
     console.log("Applicant data API: Sending applicant data");

@@ -11,13 +11,14 @@ if (!MERCHANT_ACCOUNT_NUMBER || !HUBTEL_CLIENT_ID || !HUBTEL_CLIENT_SECRET) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { totalAmount, description, clientReference } = await request.json();
+    const { totalAmount, description, clientReference, indexNumber } =
+      await request.json();
 
     const paymentData = {
       totalAmount,
       description,
       callbackUrl: `${process.env.NEXT_PUBLIC_API_URL}/api/payment-callback`,
-      returnUrl: `${process.env.NEXT_PUBLIC_API_URL}/payment-success`,
+      returnUrl: `${process.env.NEXT_PUBLIC_API_URL}/payment-success?indexNumber=${indexNumber}`,
       cancellationUrl: `${process.env.NEXT_PUBLIC_API_URL}/payment-cancelled`,
       merchantAccountNumber: MERCHANT_ACCOUNT_NUMBER,
       clientReference,

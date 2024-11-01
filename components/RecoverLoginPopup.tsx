@@ -42,7 +42,7 @@ export default function RecoverLoginPopup({
         setRecoveredCredentials(result);
         setSuccessMessage("Login information retrieved successfully.");
       } else {
-        setError("Check your index number or contact support!");
+        setError("Check your index number and if you have paid the fee!");
       }
     } catch (error) {
       console.error("Error recovering login info:", error);

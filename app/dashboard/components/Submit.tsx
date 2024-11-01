@@ -16,6 +16,8 @@ interface ApplicantData {
   passportPhoto: string;
   phoneNumber?: string;
   applicationNumber?: string;
+  feePaid: boolean;
+  houseId: string;
 }
 
 interface GuardianData {
@@ -50,6 +52,7 @@ interface SubmitProps {
   houseData: {
     gender: string;
     houseAssigned: string;
+    houseId: string;
   };
   uploadStatus: UploadStatus;
   onSubmit: () => void;
@@ -142,12 +145,6 @@ export default function Submit({
       newErrors.push("Previous School is required");
     if (!additionalData.beceYear) newErrors.push("BECE Year is required");
 
-    // Check AcademicData
-    if (!academicData.selectedClass)
-      newErrors.push("Class selection is required");
-    if (academicData.electiveSubjects.length === 0)
-      newErrors.push("At least one elective subject is required");
-
     // Check UploadStatus
     if (uploadStatus.placementForm.length === 0)
       newErrors.push("Placement Form is required");
@@ -164,7 +161,6 @@ export default function Submit({
     setErrors([]);
     setSubmissionStatus("PENDING");
 
-    // Generate application number if not exists
     if (!applicationNumber) {
       const success = await generateApplicationNumber();
       if (!success) {
@@ -197,16 +193,7 @@ export default function Submit({
     };
 
     const candidateData = {
-      fullName: applicantData.fullName,
-      indexNumber: applicantData.indexNumber,
-      gender: applicantData.gender,
-      aggregate: applicantData.aggregate,
-      residence: applicantData.residence,
-      programme: applicantData.programme,
-      nhisNo: applicantData.nhisNo,
-      enrollmentCode: applicantData.enrollmentCode,
-      passportPhoto: applicantData.passportPhoto,
-      phoneNumber: applicantData.phoneNumber || "",
+      ...applicantData,
       guardianInfo: guardianData,
       additionalInfo: additionalData,
       academicInfo: {
@@ -215,38 +202,27 @@ export default function Submit({
       },
       house: houseData,
       uploads: formattedUploads,
-      applicationNumber: applicationNumber, // Now this is guaranteed to be a string
+      applicationNumber: applicationNumber,
     };
+
     setLoadingMessage("Submitting your application...");
-    // try {
-    //   const response = await fetch("/api/candidate", {
-    //     method: "POST",
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //     },
-    //     body: JSON.stringify(candidateData),
-    //   });
+
     try {
+      console.log(
+        "Submitting candidate data:",
+        JSON.stringify(candidateData, null, 2)
+      );
+
       const response = await fetch("/api/candidate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...applicantData,
-          guardianInfo: guardianData,
-          additionalInfo: additionalData,
-          academicInfo: {
-            ...academicData,
-            classCapacity: parseInt(academicData.classCapacity) || 0,
-          },
-          house: houseData,
-          uploads: uploadStatus,
-          applicationNumber,
-        }),
+        body: JSON.stringify(candidateData),
       });
 
       const data = await response.json();
+      console.log("API response:", data);
 
       if (response.ok) {
         setSubmissionMessage(
@@ -255,13 +231,20 @@ export default function Submit({
         setSubmissionStatus("SUBMITTED");
         onSubmit();
       } else {
-        setSubmissionMessage(`Failed to submit application: ${data.error}`);
+        let errorMessage = data.error || "Unknown error occurred";
+        if (errorMessage.includes("No available houses")) {
+          errorMessage =
+            "No available houses. Please contact the administration.";
+        }
+        setSubmissionMessage(`Failed to submit application: ${errorMessage}`);
         setSubmissionStatus("FAILED");
+        setErrors([errorMessage]);
       }
     } catch (error) {
       console.error("Submission error:", error);
       setSubmissionMessage("An error occurred during submission.");
       setSubmissionStatus("FAILED");
+      setErrors(["An unexpected error occurred. Please try again later."]);
     } finally {
       setLoadingMessage("");
       setIsPending(false);
@@ -294,13 +277,15 @@ export default function Submit({
 
       if (response.ok) {
         setSubmissionMessage("Changes saved successfully!");
-        onSave(); // Call the onSave prop
+        onSave();
       } else {
         setSubmissionMessage(`Failed to save changes: ${data.error}`);
+        setErrors([data.error]);
       }
     } catch (error) {
       console.error("Save error:", error);
       setSubmissionMessage("An error occurred while saving changes.");
+      setErrors(["An unexpected error occurred while saving changes."]);
     } finally {
       setIsPending(false);
     }

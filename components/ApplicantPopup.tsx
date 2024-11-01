@@ -10,6 +10,7 @@ interface CandidateInfo {
   gender: string;
   residence: string;
   aggregate: number;
+  feePaid: boolean;
 }
 
 interface ApplicantPopupProps {
@@ -27,7 +28,7 @@ export default function ApplicantPopup({
 }: ApplicantPopupProps) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isPaid, setIsPaid] = useState(false);
+  const [isPaid, setIsPaid] = useState(candidateInfo.feePaid);
   const [clientReference, setClientReference] = useState("");
   const [voucherSent, setVoucherSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +67,7 @@ export default function ApplicantPopup({
           totalAmount: 1, // Set your application fee here
           description: "Peki Senior High School Application Fee",
           clientReference: `PEKI-${Date.now()}`,
+          indexNumber: candidateInfo.indexNumber,
         }),
       });
 
@@ -106,7 +108,6 @@ export default function ApplicantPopup({
       setIsLoading(false);
     }
   };
-
   const checkPaymentStatus = useCallback(async (clientRef: string) => {
     const maxAttempts = 12; // 5 minutes (12 * 25 seconds)
     let attempts = 0;

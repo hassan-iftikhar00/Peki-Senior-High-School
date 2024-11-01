@@ -1,22 +1,27 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "./components/Sidebar";
-import TopBar from "./components/TopBar";
-import PersonalInfo from "./components/PersonalInfo";
-import AcademicInfo from "./components/AcademicInfo";
-import House from "./components/House";
-import Uploads, { UploadStatus } from "./components/Uploads";
-import Submit from "./components/Submit";
-import AdmissionDocuments from "./components/AdmissionDocuments";
-import GuardianInfo from "./components/GuardianInfo";
-import AdditionalInfo from "./components/AdditionalInfo";
-import Footer from "../../components/Footer";
-import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert";
+import dynamic from "next/dynamic";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
-import { uploadToCloudinary } from ".././utils/cloudinary";
 import "./dashboard.css";
+import { UploadStatus } from "./components/Uploads";
+
+// Dynamically import components
+const Sidebar = dynamic(() => import("./components/Sidebar"), { ssr: false });
+const TopBar = dynamic(() => import("./components/TopBar"), { ssr: false });
+const PersonalInfo = dynamic(() => import("./components/PersonalInfo"));
+const AcademicInfo = dynamic(() => import("./components/AcademicInfo"));
+const House = dynamic(() => import("./components/House"));
+const Uploads = dynamic(() => import("./components/Uploads"));
+const Submit = dynamic(() => import("./components/Submit"));
+const AdmissionDocuments = dynamic(
+  () => import("./components/AdmissionDocuments")
+);
+const GuardianInfo = dynamic(() => import("./components/GuardianInfo"));
+const AdditionalInfo = dynamic(() => import("./components/AdditionalInfo"));
+const Footer = dynamic(() => import("@/components/Footer"), { ssr: false });
 
 export interface ApplicantData {
   fullName: string;
@@ -35,6 +40,8 @@ export interface ApplicantData {
   academicInfo: AcademicData;
   uploads: UploadStatus;
   applicationNumber?: string;
+  feePaid: boolean;
+  houseId: string;
 }
 
 export interface GuardianData {
@@ -69,6 +76,9 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isAssigningHouse, setIsAssigningHouse] = useState(false);
+  const [houseAssignmentAttempted, setHouseAssignmentAttempted] =
+    useState(false);
   const router = useRouter();
 
   const fetchApplicantData = useCallback(async () => {
@@ -93,15 +103,15 @@ export default function Dashboard() {
       const data = await response.json();
 
       if (data && Object.keys(data).length > 0) {
-        if (!data.uploads) {
-          data.uploads = {
+        setApplicantData({
+          ...data,
+          uploads: data.uploads || {
             placementForm: [],
             nhisCard: null,
             idDocument: null,
             medicalRecords: [],
-          };
-        }
-        setApplicantData(data);
+          },
+        });
         const wasSubmitted = !!data.applicationNumber;
         setIsSubmitted(wasSubmitted);
         setIsEditMode(!wasSubmitted);
@@ -117,74 +127,162 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [router, isLoading]);
+  }, [router]);
 
   useEffect(() => {
     fetchApplicantData();
   }, [fetchApplicantData]);
 
-  const handlePersonalInfoChange = (
-    field: keyof ApplicantData,
-    value: string
-  ) => {
-    // Only block changes if submitted AND not in edit mode
-    if (isSubmitted && !isEditMode) return;
-    setApplicantData((prevData) => {
-      if (!prevData) return null;
-      return {
-        ...prevData,
-        [field]: value,
-      };
-    });
-  };
+  const assignHouse = useCallback(
+    async (gender: string, indexNumber: string) => {
+      if (isAssigningHouse) return null;
+      setIsAssigningHouse(true);
+      try {
+        const response = await fetch("/api/assign-house", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ gender, indexNumber }),
+        });
 
-  const handleAdditionalChange = (
-    field: keyof AdditionalInfoData,
-    value: string
-  ) => {
-    if (isSubmitted && !isEditMode) return;
-    setApplicantData((prevData) => {
-      if (!prevData) return null;
-      return {
-        ...prevData,
-        additionalInfo: {
-          ...prevData.additionalInfo,
-          [field]: value,
-        },
-      };
-    });
-  };
+        const data = await response.json();
 
-  const handleGuardianChange = (field: keyof GuardianData, value: string) => {
-    if (isSubmitted && !isEditMode) return;
-    setApplicantData((prevData) => {
-      if (!prevData) return null;
-      return {
-        ...prevData,
-        guardianInfo: {
-          ...prevData.guardianInfo,
-          [field]: value,
-        },
-      };
-    });
-  };
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to assign house");
+        }
 
-  const handleAcademicChange = (
-    field: keyof AcademicData,
-    value: string | string[]
-  ) => {
-    if (isSubmitted && !isEditMode) return;
-    setApplicantData((prevData) => {
-      if (!prevData) return null;
-      return {
-        ...prevData,
-        academicInfo: {
-          ...prevData.academicInfo,
-          [field]: value,
+        return data;
+      } catch (error) {
+        console.error("Error assigning house:", error);
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Failed to assign house. Please try again later."
+        );
+        return null;
+      } finally {
+        setIsAssigningHouse(false);
+        setHouseAssignmentAttempted(true);
+      }
+    },
+    [isAssigningHouse]
+  );
+
+  useEffect(() => {
+    if (
+      applicantData &&
+      !applicantData.houseId &&
+      !isAssigningHouse &&
+      !houseAssignmentAttempted
+    ) {
+      assignHouse(applicantData.gender, applicantData.indexNumber).then(
+        (houseData) => {
+          if (houseData) {
+            setApplicantData((prevData) =>
+              prevData
+                ? {
+                    ...prevData,
+                    houseId: houseData.houseId,
+                    houseAssigned: houseData.houseName,
+                  }
+                : null
+            );
+          }
+        }
+      );
+    }
+  }, [applicantData, assignHouse, isAssigningHouse, houseAssignmentAttempted]);
+
+  const handleSubmit = useCallback(async () => {
+    if (!applicantData) return;
+
+    setIsLoading(true);
+    try {
+      // Ensure house is assigned before submission
+      if (!applicantData.houseId) {
+        const houseData = await assignHouse(
+          applicantData.gender,
+          applicantData.indexNumber
+        );
+        if (houseData) {
+          setApplicantData((prevData) => ({
+            ...prevData!,
+            houseId: houseData.houseId,
+            houseAssigned: houseData.houseName,
+          }));
+        } else {
+          throw new Error("Failed to assign house");
+        }
+      }
+
+      // Submit the data to the server
+      const response = await fetch("/api/candidate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      };
-    });
-  };
+        body: JSON.stringify(applicantData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit application");
+      }
+
+      const result = await response.json();
+      setApplicantData(result.candidate);
+      setIsSubmitted(true);
+      setIsEditMode(false);
+    } catch (error) {
+      console.error("Submission error:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "An error occurred during submission"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [applicantData, assignHouse]);
+
+  const handlePersonalInfoChange = useCallback(
+    (field: keyof ApplicantData, value: string) => {
+      if (isSubmitted && !isEditMode) return;
+      setApplicantData((prevData) => {
+        if (!prevData) return null;
+        return { ...prevData, [field]: value };
+      });
+    },
+    [isSubmitted, isEditMode]
+  );
+
+  const handleGuardianChange = useCallback(
+    (field: keyof GuardianData, value: string) => {
+      if (isSubmitted && !isEditMode) return;
+      setApplicantData((prevData) => {
+        if (!prevData) return null;
+        return {
+          ...prevData,
+          guardianInfo: { ...prevData.guardianInfo, [field]: value },
+        };
+      });
+    },
+    [isSubmitted, isEditMode]
+  );
+
+  const handleAdditionalChange = useCallback(
+    (field: keyof AdditionalInfoData, value: string) => {
+      if (isSubmitted && !isEditMode) return;
+      setApplicantData((prevData) => {
+        if (!prevData) return null;
+        return {
+          ...prevData,
+          additionalInfo: { ...prevData.additionalInfo, [field]: value },
+        };
+      });
+    },
+    [isSubmitted, isEditMode]
+  );
 
   const handleUploadStatusChange = useCallback(
     (newUploadStatus: UploadStatus) => {
@@ -193,20 +291,8 @@ export default function Dashboard() {
         prevData ? { ...prevData, uploads: newUploadStatus } : null
       );
     },
-    [isSubmitted, isEditMode] // Add these dependencies
+    [isSubmitted, isEditMode]
   );
-
-  const handleSubmissionComplete = useCallback((applicationNumber: string) => {
-    setApplicantData((prev) =>
-      prev
-        ? {
-            ...prev,
-            applicationNumber,
-          }
-        : null
-    );
-    setIsSubmitted(true);
-  }, []);
 
   if (isLoading) {
     return (
@@ -243,68 +329,74 @@ export default function Dashboard() {
       style={{ display: "flex", flexDirection: "column", height: "100vh" }}
     >
       <div style={{ display: "flex", width: "100%" }}>
-        <div style={{ width: "280px" }}>
-          <Sidebar />
-        </div>
-        <div style={{ flex: 1 }}>
-          <TopBar
-            applicantName={applicantData.fullName}
-            passportPhoto={applicantData.passportPhoto}
-          />
-        </div>
+        <Suspense fallback={<div>Loading...</div>}>
+          <div style={{ width: "280px" }}>
+            <Sidebar />
+          </div>
+          <div style={{ flex: 1 }}>
+            <TopBar
+              applicantName={applicantData.fullName}
+              passportPhoto={applicantData.passportPhoto}
+            />
+          </div>
+        </Suspense>
       </div>
       <div
         className="main-content"
         style={{ flex: 1, overflow: "auto", marginLeft: "280px" }}
       >
         <div className="content-area">
-          <PersonalInfo
-            applicantData={applicantData}
-            onChange={handlePersonalInfoChange}
-            isDisabled={isSubmitted && !isEditMode}
-          />
-          <GuardianInfo
-            guardianInfo={applicantData.guardianInfo}
-            onChange={handleGuardianChange}
-            isDisabled={isSubmitted && !isEditMode}
-          />
-          <AdditionalInfo
-            additionalInfo={applicantData.additionalInfo}
-            onChange={handleAdditionalChange}
-            isDisabled={isSubmitted && !isEditMode}
-          />
-          <AcademicInfo
-            programme={applicantData.programme}
-            academicInfo={applicantData.academicInfo}
-            setAcademicData={handleAcademicChange}
-            isDisabled={isSubmitted && !isEditMode}
-          />
-          <House
-            gender={applicantData.gender}
-            houseAssigned={applicantData.houseAssigned}
-          />
-          <Uploads
-            initialUploadStatus={applicantData.uploads}
-            onUploadStatusChange={handleUploadStatusChange}
-            isDisabled={isSubmitted && !isEditMode}
-          />
-          <Submit
-            applicantData={applicantData}
-            guardianData={applicantData.guardianInfo}
-            additionalData={applicantData.additionalInfo}
-            academicData={applicantData.academicInfo}
-            houseData={{
-              gender: applicantData.gender,
-              houseAssigned: applicantData.houseAssigned,
-            }}
-            uploadStatus={applicantData.uploads}
-            onSubmit={() => setIsSubmitted(true)}
-            onEdit={() => setIsEditMode(true)}
-            onSave={() => setIsEditMode(false)}
-            isSubmitted={isSubmitted}
-            isEditMode={isEditMode}
-          />
-          <AdmissionDocuments candidateData={applicantData} />
+          <Suspense fallback={<div>Loading...</div>}>
+            <PersonalInfo
+              applicantData={applicantData}
+              onChange={handlePersonalInfoChange}
+              isDisabled={isSubmitted && !isEditMode}
+            />
+            <GuardianInfo
+              guardianInfo={applicantData.guardianInfo}
+              onChange={handleGuardianChange}
+              isDisabled={isSubmitted && !isEditMode}
+            />
+            <AdditionalInfo
+              additionalInfo={applicantData.additionalInfo}
+              onChange={handleAdditionalChange}
+              isDisabled={isSubmitted && !isEditMode}
+            />
+            <AcademicInfo
+              programme={applicantData.programme}
+              academicInfo={applicantData.academicInfo}
+            />
+            <House
+              gender={applicantData.gender}
+              houseId={applicantData.houseId}
+              houseName={applicantData.houseAssigned}
+              isLoading={isAssigningHouse}
+              error={error}
+            />
+            <Uploads
+              initialUploadStatus={applicantData.uploads}
+              onUploadStatusChange={handleUploadStatusChange}
+              isDisabled={isSubmitted && !isEditMode}
+            />
+            <Submit
+              applicantData={applicantData}
+              guardianData={applicantData.guardianInfo}
+              additionalData={applicantData.additionalInfo}
+              academicData={applicantData.academicInfo}
+              houseData={{
+                gender: applicantData.gender,
+                houseAssigned: applicantData.houseAssigned,
+                houseId: applicantData.houseId,
+              }}
+              uploadStatus={applicantData.uploads}
+              onSubmit={handleSubmit}
+              onEdit={() => setIsEditMode(true)}
+              onSave={() => setIsEditMode(false)}
+              isSubmitted={isSubmitted}
+              isEditMode={isEditMode}
+            />
+            <AdmissionDocuments candidateData={applicantData} />
+          </Suspense>
         </div>
       </div>
       <Footer />

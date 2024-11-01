@@ -15,6 +15,8 @@ interface ApplicantData {
   houseAssigned: string;
   passportPhoto: string;
   phoneNumber: string;
+  feePaid: boolean;
+  houseId: string;
 }
 
 interface PersonalInfoProps {

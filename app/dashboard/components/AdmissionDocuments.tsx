@@ -21,6 +21,8 @@ interface ApplicantData {
   academicInfo: AcademicData;
   uploads: UploadStatus;
   applicationNumber?: string;
+  feePaid: boolean;
+  houseId: string;
 }
 
 interface GuardianData {

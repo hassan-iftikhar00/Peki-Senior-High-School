@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
           pin: hashedPin,
           phoneNumber: phoneNumber,
           lastUpdated: new Date(),
+          feePaid: true, // Set feePaid to true when generating the voucher
         },
       },
       { new: true, runValidators: true, upsert: false }
@@ -106,7 +107,9 @@ export async function POST(request: NextRequest) {
       // Revert the database update if SMS sending fails
       await Candidate.findOneAndUpdate(
         { indexNumber: indexNumber },
-        { $unset: { serialNumber: "", pin: "", phoneNumber: "" } }
+        {
+          $unset: { serialNumber: "", pin: "", phoneNumber: "" },
+        }
       );
 
       return NextResponse.json(
@@ -125,7 +128,9 @@ export async function POST(request: NextRequest) {
       // Revert the database update if SMS sending fails
       await Candidate.findOneAndUpdate(
         { indexNumber: indexNumber },
-        { $unset: { serialNumber: "", pin: "", phoneNumber: "" } }
+        {
+          $unset: { serialNumber: "", pin: "", phoneNumber: "" },
+        }
       );
 
       return NextResponse.json(

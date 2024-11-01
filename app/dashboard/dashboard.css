@@ -17,6 +17,32 @@ body {
   display: flex;
 }
 
+.capacity-display {
+  display: flex;
+  align-items: center;
+  margin-top: 5px;
+}
+
+.capacity-label {
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.capacity-value {
+  display: inline-block;
+  padding: 4px 12px;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 20px;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.capacity-value:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
 .trash-uploads {
   display: inline-flex;
   align-items: center;
@@ -91,7 +117,6 @@ body {
 .cred {
   margin-top: 40px !important;
   background-color: white !important;
-  color: pink;
   cursor: pointer;
   display: inline-block;
   text-align: center;

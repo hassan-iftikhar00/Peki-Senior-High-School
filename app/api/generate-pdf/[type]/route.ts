@@ -6,7 +6,7 @@ const PDF_TEMPLATES = {
   admissionLetter:
     "https://res.cloudinary.com/dah9roj2d/image/upload/v1730247831/zywfhieaeqvwnkk2mnsp.pdf",
   personalRecord:
-    "https://res.cloudinary.com/dah9roj2d/image/upload/v1730247831/yp2rtvahwinj1mevvdui.pdf",
+    "https://res.cloudinary.com/dah9roj2d/image/upload/v1730481836/zywfhieaeqvwnkk2mnsp.pdf",
 };
 
 export async function POST(req: NextRequest) {

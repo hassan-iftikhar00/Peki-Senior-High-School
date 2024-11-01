@@ -9,7 +9,12 @@ body {
   height: 100vh;
   margin: 0;
 }
+.error {
+  color: red;
+}
 
+select {
+}
 .card {
   background-color: white;
   border-radius: 16px;

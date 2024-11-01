@@ -78,6 +78,7 @@ export default function ApplicantLoginPage({
           flexDirection: "column",
           justifyContent: "space-between",
         }}
+        className="card"
       >
         <div>
           <Image
@@ -118,10 +119,11 @@ export default function ApplicantLoginPage({
         {error && (
           <div
             style={{
-              color: "#ff3b30",
+              color: "red",
               fontSize: "14px",
               marginBottom: "16px",
             }}
+            className="error"
           >
             {error}
           </div>

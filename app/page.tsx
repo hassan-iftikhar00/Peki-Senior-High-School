@@ -17,6 +17,7 @@ interface CandidateInfo {
   gender: string;
   residence: string;
   aggregate: number;
+  feePaid: boolean;
 }
 
 export default function Home() {
@@ -44,10 +45,11 @@ export default function Home() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = document.cookie.replace(
-        /(?:(?:^|.*;\s*)token\s*\=\s*([^;]*).*$)|^.*$/,
-        "$1"
-      );
+      const token =
+        document.cookie.replace(
+          /(?:(?:^|.*;\s*)token\s*\=\s*([^;]*).*$)|^.*$/,
+          "$1"
+        ) || localStorage.getItem("token");
       if (token) {
         try {
           const response = await fetch("/api/verify-token", {
@@ -60,6 +62,7 @@ export default function Home() {
           } else {
             document.cookie =
               "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            localStorage.removeItem("token");
           }
         } catch (error) {
           console.error("Error verifying token:", error);
@@ -89,11 +92,19 @@ export default function Home() {
       });
 
       const data = await response.json();
+      console.log("Received data:", JSON.stringify(data, null, 2));
 
       if (response.ok && data.verified) {
         setVerifiedIndexNumber(indexNumber);
         setCandidateInfo(data.candidateInfo);
-        setShowApplicantPopup(true);
+
+        if (data.candidateInfo.feePaid === true) {
+          setShowApplicantLogin(true);
+          setShowApplicantPopup(false);
+        } else {
+          setShowApplicantPopup(true);
+          setShowApplicantLogin(false);
+        }
         setShowVerifyIndex(false);
       } else {
         setShowInvalidIndex(true);
@@ -159,7 +170,7 @@ export default function Home() {
       const data = await response.json();
 
       if (data.success) {
-        window.location.href = data.paymentUrl;
+        window.location.href = data.checkoutDirectUrl;
       } else {
         alert("Failed to initiate payment. Please try again.");
       }
@@ -220,6 +231,7 @@ export default function Home() {
       console.error("Error sending recovered login info:", error);
     }
   }, []);
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -250,7 +262,7 @@ export default function Home() {
       )}
       {showEmptyError && <EmptyErrorPopup />}
       {showInvalidIndex && <InvalidIndexPopup />}
-      {showApplicantPopup && candidateInfo && (
+      {showApplicantPopup && candidateInfo && !candidateInfo.feePaid && (
         <ApplicantPopup
           onClose={() => {
             setShowApplicantPopup(false);
