@@ -110,7 +110,9 @@ export default function Home() {
       setShowInvalidIndex(true);
       setTimeout(() => setShowInvalidIndex(false), 5000);
     } finally {
-      setVerifyLoading(false);
+      setTimeout(() => {
+        setVerifyLoading(false);
+      }, 2500); // 5000 milliseconds = 5 seconds
     }
   };
 
