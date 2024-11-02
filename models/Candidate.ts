@@ -68,7 +68,7 @@
 
 import mongoose, { Document } from "mongoose";
 
-interface ICandidate extends Document {
+export interface ICandidate extends Document {
   fullName: string;
   indexNumber: string;
   programme: string;
@@ -189,7 +189,7 @@ CandidateSchema.index({ applicationNumber: 1 }, { unique: true, sparse: true });
 CandidateSchema.index({ indexNumber: 1 }, { unique: true });
 
 const Candidate =
-  (mongoose.models.Candidate as mongoose.Model<ICandidate>) ||
+  mongoose.models.Candidate ||
   mongoose.model<ICandidate>("Candidate", CandidateSchema);
 
 export default Candidate;

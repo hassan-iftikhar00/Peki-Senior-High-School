@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
-import Candidate from "@/models/Candidate";
+import Candidate, { ICandidate } from "@/models/Candidate";
 import { verify, JwtPayload } from "jsonwebtoken";
-
 import getConfig from "next/config";
 
 const { serverRuntimeConfig } = getConfig();
@@ -52,7 +51,7 @@ export async function GET(request: NextRequest) {
     await connectToDatabase();
     console.log("Applicant data API: Connected to database");
 
-    const candidate = await Candidate.findOne({ indexNumber });
+    const candidate = await Candidate.findOne({ indexNumber }).lean();
     console.log(
       "Applicant data API: Candidate found:",
       candidate ? "Yes" : "No"
@@ -77,7 +76,7 @@ export async function GET(request: NextRequest) {
       residence: candidate.residence,
       programme: candidate.programme,
       nhisNo: candidate.nhisNo || "",
-      enrollmentCode: candidate.enrollmentCode || "", // Add this line
+      enrollmentCode: candidate.enrollmentCode || "",
       houseAssigned: candidate.house?.houseAssigned || "",
       passportPhoto: candidate.passportPhoto || "",
       phoneNumber: candidate.phoneNumber || "",
@@ -87,7 +86,7 @@ export async function GET(request: NextRequest) {
       uploads: candidate.uploads || {},
       applicationNumber: candidate.applicationNumber,
       feePaid: candidate.feePaid,
-      houseId: candidate.houseId,
+      houseId: candidate.house?.houseId,
     };
 
     console.log("Applicant data API: Sending applicant data");
