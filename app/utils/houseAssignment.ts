@@ -4,15 +4,17 @@ import mongoose from "mongoose";
 export async function assignHouse(
   gender: string
 ): Promise<mongoose.Types.ObjectId | null> {
-  const houses = await House.find({ gender }).sort({ currentOccupancy: 1 });
+  const normalizedGender = gender.toLowerCase();
 
-  for (const house of houses) {
-    if (house.currentOccupancy < house.capacity) {
-      house.currentOccupancy += 1;
-      await house.save();
-      return house._id;
-    }
+  const availableHouse = await House.findOne({
+    gender: normalizedGender,
+    $expr: { $lt: ["$currentOccupancy", "$capacity"] },
+  }).sort({ currentOccupancy: 1 });
+
+  if (!availableHouse) {
+    console.log(`No available houses for gender: ${normalizedGender}`);
+    return null;
   }
 
-  return null; // No available houses
+  return availableHouse._id;
 }

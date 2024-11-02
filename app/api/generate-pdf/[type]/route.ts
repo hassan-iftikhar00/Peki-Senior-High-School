@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import sharp from "sharp";
 
 // Define template URLs - replace with your Cloudinary URLs
 const PDF_TEMPLATES = {
   admissionLetter:
     "https://res.cloudinary.com/dah9roj2d/image/upload/v1730247831/zywfhieaeqvwnkk2mnsp.pdf",
   personalRecord:
-    "https://res.cloudinary.com/dah9roj2d/image/upload/v1730481836/zywfhieaeqvwnkk2mnsp.pdf",
+    "https://res.cloudinary.com/dah9roj2d/image/upload/v1730247831/yp2rtvahwinj1mevvdui.pdf",
 };
 
 export async function POST(req: NextRequest) {
@@ -136,10 +137,15 @@ async function fetchImageAsBytes(imageUrl: string): Promise<Uint8Array> {
       throw new Error(`Failed to fetch image: ${response.statusText}`);
     }
     const arrayBuffer = await response.arrayBuffer();
-    return new Uint8Array(arrayBuffer);
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Use sharp to convert the image to JPEG format
+    const jpegBuffer = await sharp(buffer).jpeg().toBuffer();
+
+    return new Uint8Array(jpegBuffer);
   } catch (error) {
-    console.error("Error fetching image:", error);
-    throw new Error("Failed to fetch passport photo");
+    console.error("Error fetching or processing image:", error);
+    throw new Error("Failed to fetch or process passport photo");
   }
 }
 

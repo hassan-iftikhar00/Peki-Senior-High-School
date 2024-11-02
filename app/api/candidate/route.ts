@@ -347,7 +347,7 @@ export async function POST(request: Request) {
         await session.abortTransaction();
         console.log("No available houses for gender:", normalizedGender);
         return NextResponse.json(
-          { error: "No available houses" },
+          { error: "No available houses. Please contact the administrator." },
           { status: 400 }
         );
       }
@@ -359,7 +359,9 @@ export async function POST(request: Request) {
       await session.abortTransaction();
       console.log("Assigned house not found:", houseId);
       return NextResponse.json(
-        { error: "Assigned house not found" },
+        {
+          error: "Assigned house not found. Please contact the administrator.",
+        },
         { status: 400 }
       );
     }
@@ -368,7 +370,7 @@ export async function POST(request: Request) {
       await session.abortTransaction();
       console.log("Assigned house is full:", houseId);
       return NextResponse.json(
-        { error: "Assigned house is full" },
+        { error: "Assigned house is full. Please contact the administrator." },
         { status: 400 }
       );
     }
@@ -415,6 +417,15 @@ export async function POST(request: Request) {
       await House.findByIdAndUpdate(houseId, {
         $inc: { currentOccupancy: 1 },
       }).session(session);
+    }
+
+    if (!updatedCandidate) {
+      await session.abortTransaction();
+      console.log("Failed to create or update candidate");
+      return NextResponse.json(
+        { error: "Failed to create or update candidate. Please try again." },
+        { status: 500 }
+      );
     }
 
     await session.commitTransaction();

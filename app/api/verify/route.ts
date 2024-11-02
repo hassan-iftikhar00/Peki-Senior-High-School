@@ -20,7 +20,7 @@ export async function POST(request: Request) {
           indexNumber: candidate.indexNumber,
           programme: candidate.programme,
           gender: candidate.gender,
-          houseAssigned: candidate.house?.houseAssigned || "",
+          houseAssigned: candidate.houseAssigned || "",
           residence: candidate.residence,
           aggregate: candidate.aggregate,
           feePaid: candidate.feePaid, // Ensure this field is included

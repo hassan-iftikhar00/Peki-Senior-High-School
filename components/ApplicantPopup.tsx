@@ -34,6 +34,7 @@ export default function ApplicantPopup({
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const router = useRouter();
+  const [hasCredentials, setHasCredentials] = useState(false);
 
   const handleBuyVoucher = () => {
     if (phoneNumber.length === 10 && phoneNumber[0] === "0") {
@@ -108,6 +109,7 @@ export default function ApplicantPopup({
       setIsLoading(false);
     }
   };
+
   const checkPaymentStatus = useCallback(async (clientRef: string) => {
     const maxAttempts = 12; // 5 minutes (12 * 25 seconds)
     let attempts = 0;
@@ -163,10 +165,13 @@ export default function ApplicantPopup({
 
         if (data.success) {
           setVoucherSent(true);
+          setHasCredentials(true);
           setSuccessMessage(
             "Voucher generated and sent successfully! Please check your phone for the SMS."
           );
-          showLogin();
+          setTimeout(() => {
+            showLogin();
+          }, 3000);
         } else {
           throw new Error(data.error || "Failed to generate voucher");
         }
@@ -204,6 +209,31 @@ export default function ApplicantPopup({
     };
   }, []);
 
+  useEffect(() => {
+    const checkCredentials = async () => {
+      try {
+        console.log("Checking credentials for:", candidateInfo.indexNumber);
+        const response = await fetch(
+          `/api/check-credentials?indexNumber=${candidateInfo.indexNumber}`
+        );
+        const data = await response.json();
+        console.log("Credentials check response:", data);
+        setHasCredentials(data.hasCredentials);
+        if (data.hasCredentials) {
+          console.log("Credentials found, showing login");
+          showLogin();
+        }
+      } catch (error) {
+        console.error("Error checking credentials:", error);
+        setError("Failed to check credentials. Please try again.");
+      }
+    };
+
+    if (isPaid) {
+      checkCredentials();
+    }
+  }, [isPaid, candidateInfo.indexNumber, showLogin]);
+
   return (
     <div className="applicant-popup" style={{ display: "flex" }}>
       <div className="popup">
@@ -239,23 +269,23 @@ export default function ApplicantPopup({
             </div>
           )}
           {!isPaid && (
-            <div className="warning-box">
-              <p className="warning-text">
-                You must pay the application fee to proceed. After payment,
-                enter your active phone number to receive login credentials.
-              </p>
-            </div>
+            <>
+              <div className="warning-box">
+                <p className="warning-text">
+                  You must pay the application fee to proceed. After payment,
+                  enter your active phone number to receive login credentials.
+                </p>
+              </div>
+              <button
+                className="pay-button"
+                onClick={handlePayment}
+                disabled={isLoading}
+              >
+                {isLoading ? "Processing..." : "Pay Application Fee"}
+              </button>
+            </>
           )}
-          {!isPaid && (
-            <button
-              className="pay-button"
-              onClick={handlePayment}
-              disabled={isLoading}
-            >
-              {isLoading ? "Processing..." : "Pay Application Fee"}
-            </button>
-          )}
-          {isPaid && !voucherSent && (
+          {isPaid && !hasCredentials && (
             <>
               <input
                 type="tel"
@@ -274,19 +304,23 @@ export default function ApplicantPopup({
               </button>
             </>
           )}
-          {voucherSent && (
+          {isPaid && hasCredentials && (
             <p className="success-message">
-              Voucher sent successfully! Redirecting to login page...
+              Your login credentials have already been generated. Please check
+              your phone or click "Login" to proceed.
             </p>
           )}
           <div className="creddiv">
             <p className="cred">
-              Already have login credentials?
-              <b>
-                <a onClick={showLogin} className="credbtn">
-                  Click here to login
-                </a>
-              </b>
+              {isPaid ? (
+                <b>
+                  <a onClick={showLogin} className="credbtn">
+                    Already have login credentials? Click here to login
+                  </a>
+                </b>
+              ) : (
+                "Pay the application fee to receive login credentials."
+              )}
             </p>
           </div>
         </div>

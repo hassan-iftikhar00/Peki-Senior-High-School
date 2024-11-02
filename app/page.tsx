@@ -98,13 +98,9 @@ export default function Home() {
         setVerifiedIndexNumber(indexNumber);
         setCandidateInfo(data.candidateInfo);
 
-        if (data.candidateInfo.feePaid === true) {
-          setShowApplicantLogin(true);
-          setShowApplicantPopup(false);
-        } else {
-          setShowApplicantPopup(true);
-          setShowApplicantLogin(false);
-        }
+        // Always show ApplicantPopup, regardless of payment status
+        setShowApplicantPopup(true);
+        setShowApplicantLogin(false);
         setShowVerifyIndex(false);
       } else {
         setShowInvalidIndex(true);
@@ -148,11 +144,11 @@ export default function Home() {
     }
   };
 
-  const showLogin = () => {
+  const showLogin = useCallback(() => {
     setShowApplicantLogin(true);
     setShowVerifyIndex(false);
     setShowApplicantPopup(false);
-  };
+  }, []);
 
   const handleRecoverLink = () => {
     setShowRecoverPopup(true);
@@ -262,7 +258,7 @@ export default function Home() {
       )}
       {showEmptyError && <EmptyErrorPopup />}
       {showInvalidIndex && <InvalidIndexPopup />}
-      {showApplicantPopup && candidateInfo && !candidateInfo.feePaid && (
+      {showApplicantPopup && candidateInfo && (
         <ApplicantPopup
           onClose={() => {
             setShowApplicantPopup(false);

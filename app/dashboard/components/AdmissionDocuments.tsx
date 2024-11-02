@@ -66,9 +66,11 @@ export default function AdmissionDocuments({
   const [isGenerating, setIsGenerating] = useState<{
     admissionLetter: boolean;
     personalRecord: boolean;
+    prospectus: boolean;
   }>({
     admissionLetter: false,
     personalRecord: false,
+    prospectus: false,
   });
   const [loadingMessage, setLoadingMessage] = useState("");
 
@@ -77,50 +79,46 @@ export default function AdmissionDocuments({
   }, [candidateData]);
 
   const handleProspectusDownload = async () => {
-    setLoadingMessage(`Generating PDF`);
+    setIsGenerating((prev) => ({ ...prev, prospectus: true }));
+    setLoadingMessage(`Downloading Prospectus`);
     try {
-      // Replace with your actual Cloudinary JPG URL
+      // Replace with your actual Cloudinary PDF URL
       const prospectusUrl =
-        "https://res.cloudinary.com/dah9roj2d/image/upload/v1730303171/ctnvh3kr5kqtrsibf4dg.jpg";
+        "https://res.cloudinary.com/dah9roj2d/image/upload/v1730573617/rcmilq4ptjwk1tvcro3p.pdf";
 
-      // Fetch the image
       const response = await fetch(prospectusUrl);
       if (!response.ok) throw new Error("Failed to fetch prospectus");
 
-      // Get the blob from the response
       const blob = await response.blob();
-
-      // Create object URL from blob
       const url = window.URL.createObjectURL(blob);
 
-      // Create temporary link and trigger download
       const link = document.createElement("a");
       link.href = url;
-      link.download = "peki-shs-prospectus.jpg"; // Changed extension to .jpg
+      link.download = "peki-shs-prospectus.pdf";
       document.body.appendChild(link);
       link.click();
 
-      // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      setLoadingMessage("");
     } catch (error) {
       console.error("Error downloading prospectus:", error);
       alert("Failed to download prospectus. Please try again.");
+    } finally {
+      setLoadingMessage("");
+      setIsGenerating((prev) => ({ ...prev, prospectus: false }));
     }
   };
 
   const handleClick = async (
     documentType: "admissionLetter" | "personalRecord"
   ) => {
-    setLoadingMessage(`Downloading Prospectus`);
-
     if (!candidateData.applicationNumber) {
       alert("Application number is required to generate documents");
       return;
     }
 
     setIsGenerating((prev) => ({ ...prev, [documentType]: true }));
+    setLoadingMessage(`Generating ${documentType}`);
 
     try {
       const response = await fetch(`/api/generate-pdf/${documentType}`, {
@@ -200,7 +198,9 @@ export default function AdmissionDocuments({
         <button
           className="action-button primary w-full flex items-center justify-center gap-2 p-3 rounded"
           onClick={() => handleClick("admissionLetter")}
-          disabled={isGenerating.admissionLetter}
+          disabled={
+            isGenerating.admissionLetter || !candidateData.applicationNumber
+          }
         >
           {isGenerating.admissionLetter ? (
             <>
@@ -218,9 +218,19 @@ export default function AdmissionDocuments({
         <button
           className="action-button secondary w-full flex items-center justify-center gap-2 p-3 rounded bg-green-600 hover:bg-green-700 text-white"
           onClick={handleProspectusDownload}
+          disabled={isGenerating.prospectus}
         >
-          <Download className="w-4 h-4 download-btn-mar" />
-          Download Prospectus
+          {isGenerating.prospectus ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin download-btn-mar" />
+              Downloading...
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4 download-btn-mar" />
+              Download Prospectus
+            </>
+          )}
         </button>
       </div>
     </div>

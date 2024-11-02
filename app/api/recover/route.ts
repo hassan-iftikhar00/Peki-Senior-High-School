@@ -29,15 +29,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!candidate.serialNumber || !candidate.pin) {
-      console.log("Candidate found, but login information is not set");
-      return NextResponse.json(
-        { success: false, error: "Login information not available" },
-        { status: 403 }
-      );
-    }
-
-    console.log("Login information found for candidate:", candidate.fullName);
+    console.log("Candidate found:", JSON.stringify(candidate, null, 2));
 
     // Generate a new PIN
     const newPin = Math.floor(100000 + Math.random() * 900000).toString();
@@ -53,7 +45,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      serialNumber: candidate.serialNumber,
+      serialNumber: candidate.serialNumber || "Not set",
       pin: newPin,
       message: "Login information retrieved and PIN reset successfully",
     });

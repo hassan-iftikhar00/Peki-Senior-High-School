@@ -194,6 +194,22 @@ export default function Dashboard() {
     }
   }, [applicantData, assignHouse, isAssigningHouse, houseAssignmentAttempted]);
 
+  const handleLogout = async () => {
+    try {
+      localStorage.setItem("isLoggedIn", "false");
+      await fetch("/api/logout", {
+        method: "POST",
+        credentials: "same-origin",
+      });
+      router.push("/");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      localStorage.setItem("isLoggedIn", "true"); // Revert on error
+      // Optionally, notify the user of the error
+    } finally {
+    }
+  };
+
   const handleSubmit = useCallback(async () => {
     if (!applicantData) return;
 
@@ -315,7 +331,7 @@ export default function Dashboard() {
         </Alert>
         <button
           className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          onClick={() => router.push("/")}
+          onClick={handleLogout}
         >
           Return to Login
         </button>

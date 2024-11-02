@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   const { phoneNumber } = await request.json();
 
   const paymentData = {
-    amount: 1, // Set the amount for the application voucher
+    amount: 60, // Set the amount for the application voucher
     title: "Peki Senior High School Application Voucher",
     description: "Payment for application voucher",
     clientReference: `PEKI-${Date.now()}`,
