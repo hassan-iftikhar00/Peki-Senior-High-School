@@ -66,7 +66,7 @@
 // export default mongoose.models.Candidate ||
 //   mongoose.model("Candidate", CandidateSchema);
 
-import mongoose, { Document } from "mongoose";
+import mongoose, { Document, Model } from "mongoose";
 
 export interface ICandidate extends Document {
   fullName: string;
@@ -188,8 +188,12 @@ const CandidateSchema = new mongoose.Schema<ICandidate>(
 CandidateSchema.index({ applicationNumber: 1 }, { unique: true, sparse: true });
 CandidateSchema.index({ indexNumber: 1 }, { unique: true });
 
+interface CandidateModel extends Model<ICandidate> {
+  // Add any static methods here if needed
+}
+
 const Candidate =
-  mongoose.models.Candidate ||
-  mongoose.model<ICandidate>("Candidate", CandidateSchema);
+  (mongoose.models.Candidate as CandidateModel) ||
+  mongoose.model<ICandidate, CandidateModel>("Candidate", CandidateSchema);
 
 export default Candidate;

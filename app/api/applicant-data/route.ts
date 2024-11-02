@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     await connectToDatabase();
     console.log("Applicant data API: Connected to database");
 
-    const candidate = await Candidate.findOne({ indexNumber }).lean();
+    const candidate = await Candidate.findOne({ indexNumber }).lean().exec();
     console.log(
       "Applicant data API: Candidate found:",
       candidate ? "Yes" : "No"
@@ -68,25 +68,27 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const typedCandidate = candidate as unknown as ICandidate;
+
     const applicantData = {
-      fullName: candidate.fullName,
-      indexNumber: candidate.indexNumber,
-      gender: candidate.gender,
-      aggregate: candidate.aggregate,
-      residence: candidate.residence,
-      programme: candidate.programme,
-      nhisNo: candidate.nhisNo || "",
-      enrollmentCode: candidate.enrollmentCode || "",
-      houseAssigned: candidate.house?.houseAssigned || "",
-      passportPhoto: candidate.passportPhoto || "",
-      phoneNumber: candidate.phoneNumber || "",
-      guardianInfo: candidate.guardianInfo || {},
-      additionalInfo: candidate.additionalInfo || {},
-      academicInfo: candidate.academicInfo || {},
-      uploads: candidate.uploads || {},
-      applicationNumber: candidate.applicationNumber,
-      feePaid: candidate.feePaid,
-      houseId: candidate.house?.houseId,
+      fullName: typedCandidate.fullName,
+      indexNumber: typedCandidate.indexNumber,
+      gender: typedCandidate.gender,
+      aggregate: typedCandidate.aggregate,
+      residence: typedCandidate.residence,
+      programme: typedCandidate.programme,
+      nhisNo: typedCandidate.nhisNo || "",
+      enrollmentCode: typedCandidate.enrollmentCode || "",
+      houseAssigned: typedCandidate.houseAssigned || "",
+      passportPhoto: typedCandidate.passportPhoto || "",
+      phoneNumber: typedCandidate.phoneNumber || "",
+      guardianInfo: typedCandidate.guardianInfo || {},
+      additionalInfo: typedCandidate.additionalInfo || {},
+      academicInfo: typedCandidate.academicInfo || {},
+      uploads: typedCandidate.uploads || {},
+      applicationNumber: typedCandidate.applicationNumber,
+      feePaid: typedCandidate.feePaid,
+      houseId: typedCandidate.house,
     };
 
     console.log("Applicant data API: Sending applicant data");
