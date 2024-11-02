@@ -69,6 +69,7 @@
 import mongoose, { Document, Model } from "mongoose";
 
 export interface ICandidate extends Document {
+  _id: mongoose.Types.ObjectId;
   fullName: string;
   indexNumber: string;
   programme: string;
@@ -81,8 +82,8 @@ export interface ICandidate extends Document {
   houseAssigned?: string;
   passportPhoto: string;
   phoneNumber?: string;
-  serialNumber?: string;
-  pin?: string;
+  serialNumber: string;
+  pin: string;
   lastUpdated?: Date;
   applicationNumber?: string;
   guardianInfo: {
@@ -135,8 +136,8 @@ const CandidateSchema = new mongoose.Schema<ICandidate>(
     houseAssigned: String,
     passportPhoto: { type: String, required: true },
     phoneNumber: { type: String },
-    serialNumber: { type: String },
-    pin: { type: String },
+    serialNumber: { type: String, required: true, unique: true },
+    pin: { type: String, required: true },
     lastUpdated: { type: Date },
     applicationNumber: {
       type: String,

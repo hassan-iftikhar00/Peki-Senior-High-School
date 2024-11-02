@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sign } from "jsonwebtoken";
 import { compare } from "bcrypt";
 import { connectToDatabase } from "@/lib/db";
-import Candidate from "@/models/Candidate";
+import Candidate, { ICandidate } from "@/models/Candidate";
 import getConfig from "next/config";
 
 const { serverRuntimeConfig } = getConfig();
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     await connectToDatabase();
     console.log("Connected to MongoDB");
 
-    const candidate = await Candidate.findOne({ serialNumber: serial });
+    const candidate = await Candidate.findOne({ serialNumber: serial }).exec();
 
     if (!candidate) {
       console.log("No candidate found for the provided credentials");
@@ -32,6 +32,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("Candidate found:", candidate.fullName);
+
+    if (!candidate.pin) {
+      console.log("Candidate has no PIN set");
+      return NextResponse.json(
+        { success: false, error: "Invalid credentials" },
+        { status: 401 }
+      );
+    }
 
     const isValidPin = await compare(pin, candidate.pin);
 
