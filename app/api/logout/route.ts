@@ -5,12 +5,6 @@ export async function POST() {
     { message: "Logged out successfully" },
     { status: 200 }
   );
-  response.cookies.set("token", "", {
-    maxAge: 0,
-    path: "/",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-  });
+  response.cookies.delete("token");
   return response;
 }

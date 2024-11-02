@@ -56,11 +56,13 @@ export function middleware(request: NextRequest) {
           return NextResponse.redirect(new URL("/dashboard", request.url));
         }
       } else {
-        throw new Error("Invalid token");
+        const response = NextResponse.redirect(new URL("/", request.url));
+        response.cookies.delete("token");
+        return response;
       }
     } catch (error) {
       console.error("Middleware: Token verification failed:", error);
-      // If token is invalid, clear it and redirect to login
+      // If token verification fails, clear it and redirect to login
       const response = NextResponse.redirect(new URL("/", request.url));
       response.cookies.delete("token");
       return response;

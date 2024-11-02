@@ -45,11 +45,10 @@ export default function Home() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token =
-        document.cookie.replace(
-          /(?:(?:^|.*;\s*)token\s*\=\s*([^;]*).*$)|^.*$/,
-          "$1"
-        ) || localStorage.getItem("token");
+      const token = document.cookie.replace(
+        /(?:(?:^|.*;\s*)token\s*=\s*([^;]*).*$)|^.*$/,
+        "$1"
+      );
       if (token) {
         try {
           const response = await fetch("/api/verify-token", {
@@ -60,9 +59,9 @@ export default function Home() {
           if (response.ok) {
             router.push("/dashboard");
           } else {
+            // Clear the token if it's invalid
             document.cookie =
               "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-            localStorage.removeItem("token");
           }
         } catch (error) {
           console.error("Error verifying token:", error);
@@ -129,10 +128,7 @@ export default function Home() {
 
       if (data.success) {
         document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Strict`;
-        localStorage.setItem("token", data.token);
-        setTimeout(() => {
-          router.push("/dashboard");
-        }, 1000);
+        router.push("/dashboard");
       } else {
         setError(data.error || "Invalid credentials. Please try again.");
       }
