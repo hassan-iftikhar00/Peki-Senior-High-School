@@ -65,7 +65,7 @@ export default function ApplicantPopup({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          totalAmount: 1, // Set your application fee here
+          totalAmount: 60, // Set your application fee here
           description: "Peki Senior High School Application Fee",
           clientReference: `PEKI-${Date.now()}`,
           indexNumber: candidateInfo.indexNumber,
