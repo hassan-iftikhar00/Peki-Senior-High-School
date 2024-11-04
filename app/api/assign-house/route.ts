@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import House from "@/models/House";
 import Candidate from "@/models/Candidate";
+import mongoose from "mongoose";
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,78 +19,104 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
     console.log("Connected to database");
 
-    // Convert gender to lowercase for case-insensitive comparison
-    const normalizedGender = gender.toLowerCase();
+    // Start a session for the transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    // Find all houses for the given gender
-    const houses = await House.find({
-      gender: { $regex: new RegExp(`^${normalizedGender}$`, "i") },
-    }).sort({ currentOccupancy: 1 }); // Sort houses by current occupancy
+    try {
+      // Check if the candidate already has a house assigned
+      const existingCandidate = await Candidate.findOne({
+        indexNumber,
+      }).session(session);
 
-    console.log("All houses for gender:", JSON.stringify(houses, null, 2));
+      if (existingCandidate && existingCandidate.house) {
+        console.log("Candidate already has a house assigned");
+        await session.abortTransaction();
+        session.endSession();
 
-    if (houses.length === 0) {
-      console.log("No houses found for the given gender");
-      return NextResponse.json(
-        { error: "No houses found for the given gender" },
-        { status: 404 }
+        const house = await House.findById(existingCandidate.house);
+        return NextResponse.json({
+          houseId: existingCandidate.house.toString(),
+          houseName: house ? house.name : "Unknown",
+        });
+      }
+
+      // Convert gender to lowercase for case-insensitive comparison
+      const normalizedGender = gender.toLowerCase();
+
+      // Find all houses for the given gender
+      const houses = await House.find({
+        gender: { $regex: new RegExp(`^${normalizedGender}$`, "i") },
+      })
+        .sort({ currentOccupancy: 1 })
+        .session(session);
+
+      if (houses.length === 0) {
+        console.log("No houses found for the given gender");
+        await session.abortTransaction();
+        session.endSession();
+        return NextResponse.json(
+          { error: "No houses found for the given gender" },
+          { status: 404 }
+        );
+      }
+
+      // Find the house with the lowest occupancy
+      const availableHouse = houses[0];
+
+      if (availableHouse.currentOccupancy >= availableHouse.capacity) {
+        console.log("All houses are at full capacity");
+        await session.abortTransaction();
+        session.endSession();
+        return NextResponse.json(
+          { error: "All houses are at full capacity" },
+          { status: 404 }
+        );
+      }
+
+      // Assign the house to the student
+      const updateResult = await House.findByIdAndUpdate(
+        availableHouse._id,
+        { $inc: { currentOccupancy: 1 } },
+        { new: true, session }
       );
-    }
 
-    // Find the house with the lowest occupancy
-    const availableHouse = houses[0];
-
-    if (!availableHouse) {
-      console.log("All houses are at full capacity");
-      return NextResponse.json(
-        { error: "All houses are at full capacity" },
-        { status: 404 }
-      );
-    }
-
-    console.log(
-      "Found available house:",
-      JSON.stringify(availableHouse, null, 2)
-    );
-
-    // Assign the house to the student
-    const updateResult = await House.findByIdAndUpdate(
-      availableHouse._id,
-      { $inc: { currentOccupancy: 1 } },
-      { new: true }
-    );
-    console.log(
-      "Updated house occupancy result:",
-      JSON.stringify(updateResult, null, 2)
-    );
-
-    // Update the candidate's house information
-    const updatedCandidate = await Candidate.findOneAndUpdate(
-      { indexNumber },
-      {
-        $set: {
-          house: availableHouse._id,
-          houseId: availableHouse._id.toString(),
-          houseName: availableHouse.name,
-          gender: normalizedGender,
+      // Update the candidate's house information
+      const updatedCandidate = await Candidate.findOneAndUpdate(
+        { indexNumber, house: { $exists: false } },
+        {
+          $set: {
+            house: availableHouse._id,
+            houseId: availableHouse._id.toString(),
+            houseName: availableHouse.name,
+            gender: normalizedGender,
+          },
         },
-      },
-      { new: true, upsert: true }
-    );
+        { new: true, upsert: false, session }
+      );
 
-    if (!updatedCandidate) {
-      throw new Error("Failed to update candidate with house assignment");
+      if (!updatedCandidate) {
+        throw new Error("Failed to update candidate with house assignment");
+      }
+
+      // Commit the transaction
+      await session.commitTransaction();
+      session.endSession();
+
+      console.log(
+        "Updated candidate house assignment:",
+        JSON.stringify(updatedCandidate, null, 2)
+      );
+
+      return NextResponse.json({
+        houseId: availableHouse._id.toString(),
+        houseName: availableHouse.name,
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
     }
-
-    console.log(
-      "Updated candidate house assignment:",
-      JSON.stringify(updatedCandidate, null, 2)
-    );
-
-    return NextResponse.json({
-      houseId: availableHouse._id.toString(),
-      houseName: availableHouse.name,
-    });
   } catch (error) {
     console.error("Error assigning house:", error);
     return NextResponse.json(

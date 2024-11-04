@@ -77,8 +77,6 @@ export default function Dashboard() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isAssigningHouse, setIsAssigningHouse] = useState(false);
-  const [houseAssignmentAttempted, setHouseAssignmentAttempted] =
-    useState(false);
   const router = useRouter();
 
   const fetchApplicantData = useCallback(async () => {
@@ -163,19 +161,13 @@ export default function Dashboard() {
         return null;
       } finally {
         setIsAssigningHouse(false);
-        setHouseAssignmentAttempted(true);
       }
     },
     [isAssigningHouse]
   );
 
   useEffect(() => {
-    if (
-      applicantData &&
-      !applicantData.houseId &&
-      !isAssigningHouse &&
-      !houseAssignmentAttempted
-    ) {
+    if (applicantData && !applicantData.houseId && !isAssigningHouse) {
       assignHouse(applicantData.gender, applicantData.indexNumber).then(
         (houseData) => {
           if (houseData) {
@@ -192,7 +184,7 @@ export default function Dashboard() {
         }
       );
     }
-  }, [applicantData, assignHouse, isAssigningHouse, houseAssignmentAttempted]);
+  }, [applicantData, assignHouse, isAssigningHouse]);
 
   const handleLogout = async () => {
     try {

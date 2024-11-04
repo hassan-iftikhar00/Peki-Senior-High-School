@@ -66,10 +66,9 @@
 // export default mongoose.models.Candidate ||
 //   mongoose.model("Candidate", CandidateSchema);
 
-import mongoose, { Document, Model } from "mongoose";
+import mongoose, { Document, Model, Types } from "mongoose";
 
-export interface ICandidate extends Document {
-  _id: mongoose.Types.ObjectId;
+export interface ICandidate {
   fullName: string;
   indexNumber: string;
   programme: string;
@@ -78,10 +77,13 @@ export interface ICandidate extends Document {
   aggregate: number;
   feePaid: boolean;
   nhisNo: string;
-  track: string; // New field added
+  track: string;
   action: string;
   enrollmentCode: string;
   houseAssigned?: string;
+  house?: Types.ObjectId;
+  houseId?: string;
+  houseName?: string;
   passportPhoto: string;
   phoneNumber?: string;
   serialNumber: string;
@@ -109,7 +111,6 @@ export interface ICandidate extends Document {
     selectedClass: string;
     classCapacity?: number;
   };
-  house?: mongoose.Types.ObjectId;
   uploads: {
     placementForm?: { name: string; url: string }[];
     nhisCard?: { name: string; url: string };
@@ -118,13 +119,15 @@ export interface ICandidate extends Document {
   };
 }
 
+export interface ICandidateDocument extends Omit<ICandidate, "_id">, Document {}
+
 const FileSchema = new mongoose.Schema({
   name: String,
   url: String,
   _id: { type: String, required: false },
 });
 
-const CandidateSchema = new mongoose.Schema<ICandidate>(
+const CandidateSchema = new mongoose.Schema<ICandidateDocument>(
   {
     fullName: { type: String, required: true },
     indexNumber: { type: String, required: true, unique: true },
@@ -136,12 +139,19 @@ const CandidateSchema = new mongoose.Schema<ICandidate>(
     nhisNo: { type: String, required: true },
     enrollmentCode: { type: String, required: true },
     houseAssigned: String,
+    house: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "House",
+      required: false,
+    },
+    houseId: { type: String },
+    houseName: { type: String },
     passportPhoto: { type: String, required: true },
     phoneNumber: { type: String },
     serialNumber: { type: String, required: true, unique: true },
     pin: { type: String, required: true },
     lastUpdated: { type: Date },
-    track: { type: String }, // New field added
+    track: { type: String },
     action: { type: String },
     applicationNumber: {
       type: String,
@@ -175,11 +185,6 @@ const CandidateSchema = new mongoose.Schema<ICandidate>(
       selectedClass: { type: String, required: true },
       classCapacity: { type: Number },
     },
-    house: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "House",
-      required: false,
-    },
     uploads: {
       placementForm: [FileSchema],
       nhisCard: FileSchema,
@@ -193,12 +198,14 @@ const CandidateSchema = new mongoose.Schema<ICandidate>(
 CandidateSchema.index({ applicationNumber: 1 }, { unique: true, sparse: true });
 CandidateSchema.index({ indexNumber: 1 }, { unique: true });
 
-interface CandidateModel extends Model<ICandidate> {
-  // Add any static methods here if needed
-}
+export interface CandidateModel extends Model<ICandidateDocument> {}
 
+// Check if the model already exists before compiling it
 const Candidate =
   (mongoose.models.Candidate as CandidateModel) ||
-  mongoose.model<ICandidate, CandidateModel>("Candidate", CandidateSchema);
+  mongoose.model<ICandidateDocument, CandidateModel>(
+    "Candidate",
+    CandidateSchema
+  );
 
 export default Candidate;
