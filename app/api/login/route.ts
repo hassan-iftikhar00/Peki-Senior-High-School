@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sign } from "jsonwebtoken";
 import { compare } from "bcrypt";
 import { connectToDatabase } from "@/lib/db";
-import Candidate, { ICandidate } from "@/models/Candidate";
+import Candidate, { ICandidateDocument } from "@/models/Candidate";
 import getConfig from "next/config";
 
 const { serverRuntimeConfig } = getConfig();
@@ -21,7 +21,9 @@ export async function POST(request: NextRequest) {
     await connectToDatabase();
     console.log("Connected to MongoDB");
 
-    const candidate = await Candidate.findOne({ serialNumber: serial }).exec();
+    const candidate = (await Candidate.findOne({
+      serialNumber: serial,
+    }).exec()) as ICandidateDocument | null;
 
     if (!candidate) {
       console.log("No candidate found for the provided credentials");
@@ -53,11 +55,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const token = sign(
-      { userId: candidate._id.toString(), indexNumber: candidate.indexNumber },
-      JWT_SECRET,
-      { expiresIn: "1d" }
-    );
+    const token = sign({ indexNumber: candidate.indexNumber }, JWT_SECRET, {
+      expiresIn: "1d",
+    });
 
     const response = NextResponse.json({
       success: true,
