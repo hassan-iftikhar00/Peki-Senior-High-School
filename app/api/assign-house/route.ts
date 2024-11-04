@@ -1,34 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
-import mongoose from "mongoose";
-
-const HouseSchema = new mongoose.Schema({
-  gender: String,
-  currentOccupancy: {
-    type: Number,
-    default: 0,
-  },
-  capacity: {
-    type: Number,
-    required: true,
-  },
-  name: String,
-});
-
-const CandidateSchema = new mongoose.Schema({
-  indexNumber: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  gender: String,
-  houseId: String,
-  houseName: String,
-});
-
-const House = mongoose.models.House || mongoose.model("House", HouseSchema);
-const Candidate =
-  mongoose.models.Candidate || mongoose.model("Candidate", CandidateSchema);
+import House from "@/models/House";
+import Candidate from "@/models/Candidate";
 
 export async function POST(req: NextRequest) {
   try {
@@ -45,37 +18,33 @@ export async function POST(req: NextRequest) {
     await connectToDatabase();
     console.log("Connected to database");
 
+    // Convert gender to lowercase for case-insensitive comparison
+    const normalizedGender = gender.toLowerCase();
+
     // Find all houses for the given gender
     const houses = await House.find({
-      gender: { $regex: new RegExp(gender, "i") },
+      gender: { $regex: new RegExp(`^${normalizedGender}$`, "i") },
     });
     console.log("All houses for gender:", JSON.stringify(houses, null, 2));
 
     if (houses.length === 0) {
       console.log("No houses found for the given gender");
+      // Log all houses in the database for debugging
+      const allHouses = await House.find({});
+      console.log(
+        "All houses in the database:",
+        JSON.stringify(allHouses, null, 2)
+      );
       return NextResponse.json(
         { error: "No houses found for the given gender" },
         { status: 404 }
       );
     }
 
-    // Log each house's occupancy status
-    houses.forEach((house) => {
-      console.log(
-        `House: ${house.name}, Current Occupancy: ${
-          house.currentOccupancy
-        }, Capacity: ${house.capacity}, Available: ${
-          house.currentOccupancy < house.capacity
-        }`
-      );
-    });
-
     // Find an available house
-    const availableHouse = houses.find((house) => {
-      const isAvailable = house.currentOccupancy < house.capacity;
-      console.log(`Checking house: ${house.name}, isAvailable: ${isAvailable}`);
-      return isAvailable;
-    });
+    const availableHouse = houses.find(
+      (house) => house.currentOccupancy < house.capacity
+    );
 
     if (!availableHouse) {
       console.log("All houses are at full capacity");
@@ -91,20 +60,25 @@ export async function POST(req: NextRequest) {
     );
 
     // Assign the house to the student
-    const updateResult = await House.updateOne(
-      { _id: availableHouse._id },
-      { $inc: { currentOccupancy: 1 } }
+    const updateResult = await House.findByIdAndUpdate(
+      availableHouse._id,
+      { $inc: { currentOccupancy: 1 } },
+      { new: true }
     );
-    console.log("Updated house occupancy result:", updateResult);
+    console.log(
+      "Updated house occupancy result:",
+      JSON.stringify(updateResult, null, 2)
+    );
 
-    // Update the candidate's houseId and houseName
+    // Update the candidate's house information
     const updatedCandidate = await Candidate.findOneAndUpdate(
       { indexNumber },
       {
         $set: {
+          house: availableHouse._id,
           houseId: availableHouse._id.toString(),
           houseName: availableHouse.name,
-          gender: gender,
+          gender: normalizedGender,
         },
       },
       { new: true, upsert: true }
@@ -125,6 +99,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Error assigning house:", error);
-    return NextResponse.json({ status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
