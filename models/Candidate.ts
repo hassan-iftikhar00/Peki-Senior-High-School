@@ -78,6 +78,8 @@ export interface ICandidate extends Document {
   aggregate: number;
   feePaid: boolean;
   nhisNo: string;
+  track: string; // New field added
+  action: string;
   enrollmentCode: string;
   houseAssigned?: string;
   passportPhoto: string;
@@ -139,6 +141,8 @@ const CandidateSchema = new mongoose.Schema<ICandidate>(
     serialNumber: { type: String, required: true, unique: true },
     pin: { type: String, required: true },
     lastUpdated: { type: Date },
+    track: { type: String }, // New field added
+    action: { type: String },
     applicationNumber: {
       type: String,
       required: false,

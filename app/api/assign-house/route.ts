@@ -24,27 +24,20 @@ export async function POST(req: NextRequest) {
     // Find all houses for the given gender
     const houses = await House.find({
       gender: { $regex: new RegExp(`^${normalizedGender}$`, "i") },
-    });
+    }).sort({ currentOccupancy: 1 }); // Sort houses by current occupancy
+
     console.log("All houses for gender:", JSON.stringify(houses, null, 2));
 
     if (houses.length === 0) {
       console.log("No houses found for the given gender");
-      // Log all houses in the database for debugging
-      const allHouses = await House.find({});
-      console.log(
-        "All houses in the database:",
-        JSON.stringify(allHouses, null, 2)
-      );
       return NextResponse.json(
         { error: "No houses found for the given gender" },
         { status: 404 }
       );
     }
 
-    // Find an available house
-    const availableHouse = houses.find(
-      (house) => house.currentOccupancy < house.capacity
-    );
+    // Find the house with the lowest occupancy
+    const availableHouse = houses[0];
 
     if (!availableHouse) {
       console.log("All houses are at full capacity");
