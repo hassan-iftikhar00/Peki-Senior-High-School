@@ -158,13 +158,33 @@ export default function Home() {
       const response = await fetch("/api/initiate-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber, indexNumber: verifiedIndexNumber }),
+        body: JSON.stringify({
+          phoneNumber,
+          indexNumber: verifiedIndexNumber,
+          totalAmount: 60, // Set the correct amount
+          description: "Application Fee",
+        }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        window.location.href = data.checkoutDirectUrl;
+        // Open the payment URL in a new window
+        const paymentWindow = window.open(data.checkoutDirectUrl, "_blank");
+
+        if (paymentWindow) {
+          // Set up a listener for when the payment window closes
+          const checkWindowClosed = setInterval(() => {
+            if (paymentWindow.closed) {
+              clearInterval(checkWindowClosed);
+              // Redirect to the payment status page
+              window.location.href = `/payment-status?indexNumber=${verifiedIndexNumber}&clientReference=${data.clientReference}`;
+            }
+          }, 1000);
+        } else {
+          // If the window couldn't be opened, redirect immediately
+          window.location.href = `/payment-status?indexNumber=${verifiedIndexNumber}&clientReference=${data.clientReference}`;
+        }
       } else {
         alert("Failed to initiate payment. Please try again.");
       }

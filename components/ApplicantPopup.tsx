@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 interface CandidateInfo {
@@ -33,8 +33,9 @@ export default function ApplicantPopup({
   const [voucherSent, setVoucherSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const router = useRouter();
   const [hasCredentials, setHasCredentials] = useState(false);
+  const router = useRouter();
+  const paymentWindowRef = useRef<Window | null>(null);
 
   const handleBuyVoucher = () => {
     if (phoneNumber.length === 10 && phoneNumber[0] === "0") {
@@ -53,8 +54,6 @@ export default function ApplicantPopup({
     setPhoneNumber(value);
   };
 
-  const isPhoneValid = phoneNumber.length === 10 && phoneNumber[0] === "0";
-
   const handlePayment = async () => {
     setIsLoading(true);
     setError(null);
@@ -65,7 +64,7 @@ export default function ApplicantPopup({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          totalAmount: 60, // Set your application fee here
+          totalAmount: 60,
           description: "Peki Senior High School Application Fee",
           clientReference: `PEKI-${Date.now()}`,
           indexNumber: candidateInfo.indexNumber,
@@ -77,28 +76,27 @@ export default function ApplicantPopup({
       if (data.success) {
         setClientReference(data.clientReference);
 
-        // Center the payment popup
+        // Open payment URL in a new window
         const width = 500;
         const height = 600;
         const left = Math.max(0, (window.screen.width - width) / 2);
         const top = Math.max(0, (window.screen.height - height) / 2);
 
-        const paymentWindow = window.open(
+        paymentWindowRef.current = window.open(
           data.checkoutDirectUrl,
-          "Payment",
-          `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+          "_blank",
+          `width=${width},height=${height},left=${left},top=${top},location=yes,status=yes`
         );
 
-        if (paymentWindow) {
-          paymentWindow.focus();
-        } else {
+        if (!paymentWindowRef.current) {
           setError(
             "Popup blocked. Please allow popups for this site and try again."
           );
+          return;
         }
 
-        // Start checking for payment status
-        checkPaymentStatus(data.clientReference);
+        // Start polling for payment status
+        pollPaymentStatus(data.clientReference);
       } else {
         throw new Error(data.error || "Payment initiation failed");
       }
@@ -110,34 +108,66 @@ export default function ApplicantPopup({
     }
   };
 
-  const checkPaymentStatus = useCallback(async (clientRef: string) => {
-    const maxAttempts = 12; // 5 minutes (12 * 25 seconds)
+  const pollPaymentStatus = useCallback(async (clientRef: string) => {
     let attempts = 0;
+    const maxAttempts = 60; // 5 minutes with 5-second intervals
+    const pollInterval = 5000; // 5 seconds
 
     const checkStatus = async () => {
       if (attempts >= maxAttempts) {
-        console.log("Max attempts reached. Payment status unknown.");
-        setError("Payment status check timed out. Please contact support.");
+        setError(
+          "Payment status check timed out. Please contact support if you've completed the payment."
+        );
         return;
       }
 
       try {
-        const response = await fetch(
+        const statusResponse = await fetch(
           `/api/check-payment-status?clientReference=${clientRef}`
         );
-        const data = await response.json();
+        const statusData = await statusResponse.json();
 
-        if (data.success && data.status === "Paid") {
+        if (statusData.success && statusData.status === "completed") {
           setIsPaid(true);
-          console.log("Payment successful!");
-        } else if (data.success && data.status === "Unpaid") {
-          attempts++;
-          setTimeout(checkStatus, 25000); // Check again after 25 seconds
+          setSuccessMessage(
+            "Payment successful! Please enter your phone number to receive login credentials."
+          );
+          if (paymentWindowRef.current && !paymentWindowRef.current.closed) {
+            paymentWindowRef.current.close();
+          }
+          return;
         }
+
+        // If window is closed and payment is not confirmed, stop polling
+        if (
+          paymentWindowRef.current &&
+          paymentWindowRef.current.closed &&
+          attempts > 2
+        ) {
+          const finalCheck = await fetch(
+            `/api/check-payment-status?clientReference=${clientRef}`
+          );
+          const finalStatus = await finalCheck.json();
+
+          if (finalStatus.success && finalStatus.status === "completed") {
+            setIsPaid(true);
+            setSuccessMessage(
+              "Payment successful! Please enter your phone number to receive login credentials."
+            );
+          } else {
+            setError(
+              "Payment window closed. Please try again if payment was not completed."
+            );
+          }
+          return;
+        }
+
+        attempts++;
+        setTimeout(checkStatus, pollInterval);
       } catch (error) {
         console.error("Error checking payment status:", error);
         attempts++;
-        setTimeout(checkStatus, 25000); // Retry after 25 seconds
+        setTimeout(checkStatus, pollInterval);
       }
     };
 
@@ -145,94 +175,73 @@ export default function ApplicantPopup({
   }, []);
 
   const handleGenerateVoucher = async () => {
-    if (isPhoneValid && isPaid) {
-      setIsLoading(true);
-      setError(null);
-      setSuccessMessage(null);
-      try {
-        const response = await fetch("/api/generate-voucher", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            phoneNumber,
-            indexNumber: candidateInfo.indexNumber,
-          }),
-        });
+    if (!isPhoneValid || !isPaid) return;
 
-        const data = await response.json();
+    setIsLoading(true);
+    setError(null);
+    setSuccessMessage(null);
 
-        if (data.success) {
-          setVoucherSent(true);
-          setHasCredentials(true);
-          setSuccessMessage(
-            "Voucher generated and sent successfully! Please check your phone for the SMS."
-          );
-          setTimeout(() => {
-            showLogin();
-          }, 3000);
-        } else {
-          throw new Error(data.error || "Failed to generate voucher");
-        }
-      } catch (error: unknown) {
-        console.error("Error:", error);
+    try {
+      const response = await fetch("/api/generate-voucher", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phoneNumber,
+          indexNumber: candidateInfo.indexNumber,
+        }),
+      });
 
-        if (error instanceof Error) {
-          setError(
-            "An error occurred while generating the voucher. If you have paid, please contact the administrator for assistance."
-          );
-        } else {
-          setError(
-            "An unknown error occurred. If you have paid, please contact the administrator for assistance."
-          );
-        }
-      } finally {
-        setIsLoading(false);
+      const data = await response.json();
+
+      if (data.success) {
+        setVoucherSent(true);
+        setHasCredentials(true);
+        setSuccessMessage(
+          "Voucher generated and sent successfully! Please check your phone for the SMS."
+        );
+        setTimeout(() => {
+          showLogin();
+        }, 3000);
+      } else {
+        throw new Error(data.error || "Failed to generate voucher");
       }
+    } catch (error) {
+      console.error("Error:", error);
+      setError(
+        error instanceof Error
+          ? `An error occurred while generating the voucher: ${error.message}`
+          : "An unknown error occurred. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    // Set up event listener for payment callback
-    const handlePaymentCallback = (event: MessageEvent) => {
-      if (event.data.type === "PAYMENT_SUCCESS") {
-        setIsPaid(true);
-        console.log("Payment successful!");
-      }
-    };
+    if (!isPaid) return;
 
-    window.addEventListener("message", handlePaymentCallback);
-
-    return () => {
-      window.removeEventListener("message", handlePaymentCallback);
-    };
-  }, []);
-
-  useEffect(() => {
     const checkCredentials = async () => {
       try {
-        console.log("Checking credentials for:", candidateInfo.indexNumber);
         const response = await fetch(
           `/api/check-credentials?indexNumber=${candidateInfo.indexNumber}`
         );
         const data = await response.json();
-        console.log("Credentials check response:", data);
-        setHasCredentials(data.hasCredentials);
+
         if (data.hasCredentials) {
-          console.log("Credentials found, showing login");
+          setHasCredentials(true);
           showLogin();
         }
       } catch (error) {
         console.error("Error checking credentials:", error);
-        setError("Failed to check credentials. Please try again.");
       }
     };
 
-    if (isPaid) {
-      checkCredentials();
-    }
+    checkCredentials();
   }, [isPaid, candidateInfo.indexNumber, showLogin]);
+
+  const isPhoneValid = phoneNumber.length === 10 && phoneNumber[0] === "0";
 
   return (
     <div className="applicant-popup" style={{ display: "flex" }}>

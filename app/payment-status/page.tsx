@@ -7,7 +7,7 @@ export default function PaymentStatusPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [message, setMessage] = useState("Processing payment...");
-  const [retries, setRetries] = useState(20);
+  const [retries, setRetries] = useState(10);
   const [checkInterval, setCheckInterval] = useState(5000);
 
   useEffect(() => {
@@ -42,6 +42,13 @@ export default function PaymentStatusPage() {
           () => checkPaymentStatus(clientReference, indexNumber),
           checkInterval
         );
+      } else if (data.status === "rate_limited" && retries > 0) {
+        setMessage("Checking payment status... Please wait.");
+        setRetries(retries - 1);
+        setTimeout(
+          () => checkPaymentStatus(clientReference, indexNumber),
+          30000
+        );
       } else {
         setMessage(
           data.message ||
@@ -64,15 +71,20 @@ export default function PaymentStatusPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md text-center">
-        <h1 className="text-2xl font-bold mb-4">Payment Status</h1>
-        <p className="mb-4">{message}</p>
-        {retries > 0 && (
-          <p className="text-sm text-gray-500">
-            Please wait, we're confirming your payment...
-          </p>
-        )}
+    <div className="status-container">
+      <div className="status-card">
+        <h1 className="status-title">Payment Status</h1>
+        <div className="status-messageContainer">
+          <p className="status-message">{message}</p>
+          {retries > 0 && (
+            <p className="status-subMessage">
+              Please wait, we're confirming your payment...
+            </p>
+          )}
+        </div>
+        <div className="status-loadingIndicator">
+          <div className="status-spinner"></div>
+        </div>
       </div>
     </div>
   );

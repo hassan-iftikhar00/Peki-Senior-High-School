@@ -89,6 +89,88 @@ button:not(.eye-button):not(.logout-button):not(.trash-uploads) {
   display: block;
 }
 
+/* payment status styling */
+.status-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  font-family: "Arial", sans-serif;
+}
+
+.status-card {
+  background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+}
+
+.status-title {
+  color: #333;
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.status-messageContainer {
+  margin-bottom: 30px;
+}
+
+.status-message {
+  color: #4a4a4a;
+  font-size: 18px;
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.status-subMessage {
+  color: #888;
+  font-size: 14px;
+}
+
+.status-loadingIndicator {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.status-spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-left-color: #3498db;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 480px) {
+  .status-card {
+    padding: 30px;
+  }
+
+  .status-title {
+    font-size: 24px;
+  }
+
+  .status-message {
+    font-size: 16px;
+  }
+}
+
 /* Add to dashboard.css */
 
 .loading-overlay {
