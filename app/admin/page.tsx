@@ -53,21 +53,19 @@ export default function AdminPanel() {
 
   return (
     <div className="admin-panel">
-      <Header toggleSidebar={toggleSidebar} />
-      <div className="main-container">
-        <Sidebar
-          activePage={activePage}
-          setActivePage={setActivePage}
-          isOpen={isSidebarOpen}
-          toggleSidebar={toggleSidebar}
-        />
-        <main
-          className={`content-area ${isSidebarOpen ? "" : "sidebar-closed"}`}
-        >
-          {renderContent()}
-        </main>
+      <Sidebar
+        activePage={activePage}
+        setActivePage={setActivePage}
+        isOpen={isSidebarOpen}
+        toggleSidebar={toggleSidebar}
+      />
+      <div
+        className={`main-container ${!isSidebarOpen ? "sidebar-closed" : ""}`}
+      >
+        <Header toggleSidebar={toggleSidebar} />
+        <div className="content-area">{renderContent()}</div>
+        <Footer />
       </div>
-      <Footer />
     </div>
   );
 }
