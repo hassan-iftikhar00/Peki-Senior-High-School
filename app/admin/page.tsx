@@ -52,22 +52,35 @@ export default function AdminPanel() {
   };
 
   return (
-    <div className="admin-panel">
-      <div className={`sidebar ${!isSidebarOpen ? "closed" : ""}`}>
-        <Sidebar
-          activePage={activePage}
-          setActivePage={setActivePage}
-          isOpen={isSidebarOpen}
-          toggleSidebar={toggleSidebar}
-        />
-      </div>
-      <div className="main-container">
-        <div className="header">
-          <Header toggleSidebar={toggleSidebar} />
+    <div
+      className="admin-panel"
+      style={{ display: "flex", flexDirection: "column", height: "100vh" }}
+    >
+      <div style={{ display: "flex", width: "100%", height: "100%" }}>
+        <div className={`sidebar ${!isSidebarOpen ? "closed" : ""}`}>
+          <Sidebar
+            activePage={activePage}
+            setActivePage={setActivePage}
+            isOpen={isSidebarOpen}
+            toggleSidebar={toggleSidebar}
+          />
         </div>
-        <div className="content-area">{renderContent()}</div>
-        <div className="footer">
-          <Footer />
+        <div
+          className="main-container"
+          style={{ flex: 1, display: "flex", flexDirection: "column" }}
+        >
+          <div className="header">
+            <Header toggleSidebar={toggleSidebar} />
+          </div>
+          <div
+            className="content-area"
+            style={{ flex: 1, overflow: "auto", paddingBottom: "50px" }}
+          >
+            {renderContent()}
+          </div>
+          <div className="footer">
+            <Footer />
+          </div>
         </div>
       </div>
     </div>
