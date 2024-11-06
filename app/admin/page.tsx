@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import Header from "./components/Header";
-import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
+import Sidebar from "./components/Sidebar";
 import Students from "./components/Students";
 import SchoolSettings from "./components/SchoolSettings";
 import Actions from "./components/Actions";
@@ -47,16 +47,23 @@ export default function AdminPanel() {
       case "users":
         return <Users />;
       default:
-        return <div>Page not found</div>;
+        return <div>Welcome to the Dashboard</div>;
     }
   };
 
   return (
     <div
       className="admin-panel"
-      style={{ display: "flex", flexDirection: "column", height: "100vh" }}
+      style={{
+        display: "grid",
+        gridTemplateAreas: `"sidebar header" "sidebar main" "sidebar footer"`,
+        gridTemplateColumns: `${isSidebarOpen ? "280px" : "0"} 1fr`,
+        gridTemplateRows: "64px 1fr 50px",
+        minHeight: "100vh",
+        transition: "grid-template-columns 0.3s ease",
+      }}
     >
-      <div style={{ display: "flex", width: "100%", height: "100%" }}>
+      <div style={{ gridArea: "sidebar", position: "relative" }}>
         <div className={`sidebar ${!isSidebarOpen ? "closed" : ""}`}>
           <Sidebar
             activePage={activePage}
@@ -65,24 +72,26 @@ export default function AdminPanel() {
             toggleSidebar={toggleSidebar}
           />
         </div>
-        <div
-          className="main-container"
-          style={{ flex: 1, display: "flex", flexDirection: "column" }}
-        >
-          <div className="header">
-            <Header toggleSidebar={toggleSidebar} />
-          </div>
-          <div
-            className="content-area"
-            style={{ flex: 1, overflow: "auto", paddingBottom: "50px" }}
-          >
-            {renderContent()}
-          </div>
-          <div className="footer">
-            <Footer />
-          </div>
-        </div>
       </div>
+
+      <header style={{ gridArea: "header" }} className="header">
+        <Header toggleSidebar={toggleSidebar} />
+      </header>
+
+      <main
+        style={{
+          gridArea: "main",
+          overflow: "auto",
+          position: "relative",
+          backgroundColor: "#f4f6f8",
+        }}
+      >
+        <div className="content-area">{renderContent()}</div>
+      </main>
+
+      <footer style={{ gridArea: "footer" }} className="footer">
+        <Footer />
+      </footer>
     </div>
   );
 }
