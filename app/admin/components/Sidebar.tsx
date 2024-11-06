@@ -102,6 +102,7 @@ import {
   User,
   Users,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface SidebarProps {
   activePage: string;
@@ -116,6 +117,25 @@ export default function Sidebar({
   isOpen,
   toggleSidebar,
 }: SidebarProps) {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("/api/admin/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        router.push("/admin/login");
+      } else {
+        console.error("Logout failed");
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "students", label: "Students", icon: Users },
@@ -172,7 +192,7 @@ export default function Sidebar({
         </ul>
       </nav>
 
-      <button className="logout-button not-admin">
+      <button className="logout-button not-admin" onClick={handleLogout}>
         <LogOut className="nav-icon" />
         <span>Logout</span>
       </button>
