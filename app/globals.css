@@ -74,7 +74,9 @@ input {
   margin-top: 20px;
   background-color: none;
 }
-button:not(.eye-button):not(.logout-button):not(.trash-uploads) {
+button:not(.eye-button):not(.logout-button):not(.trash-uploads):not(
+    .not-admin
+  ) {
   width: 80%;
   background-color: #1a1a2e;
   color: white;

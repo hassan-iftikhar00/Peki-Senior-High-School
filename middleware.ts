@@ -33,26 +33,31 @@ function verifyJWT(token: string): boolean {
 
 export function middleware(request: NextRequest) {
   console.log("Middleware: Handling request for", request.nextUrl.pathname);
-  const token = request.cookies.get("token")?.value;
-  console.log("Middleware: Token present:", !!token);
+  const applicantToken = request.cookies.get("token")?.value;
+  const adminToken = request.cookies.get("adminToken")?.value;
+  console.log("Middleware: Applicant Token present:", !!applicantToken);
+  console.log("Middleware: Admin Token present:", !!adminToken);
 
   const isApiRoute = request.nextUrl.pathname.startsWith("/api");
   const isRootPath = request.nextUrl.pathname === "/";
   const isDashboardPath = request.nextUrl.pathname.startsWith("/dashboard");
+  const isAdminPath = request.nextUrl.pathname.startsWith("/admin");
 
   if (isApiRoute) {
     console.log("Middleware: API route, passing through");
     return NextResponse.next();
   }
 
-  if (token) {
+  if (applicantToken) {
     try {
-      const isValid = verifyJWT(token);
+      const isValid = verifyJWT(applicantToken);
       if (isValid) {
-        console.log("Middleware: Token verified successfully");
+        console.log("Middleware: Applicant token verified successfully");
 
         if (isRootPath) {
-          console.log("Middleware: Token found, redirecting to dashboard");
+          console.log(
+            "Middleware: Applicant token found, redirecting to dashboard"
+          );
           return NextResponse.redirect(new URL("/dashboard", request.url));
         }
       } else {
@@ -61,17 +66,54 @@ export function middleware(request: NextRequest) {
         return response;
       }
     } catch (error) {
-      console.error("Middleware: Token verification failed:", error);
-      // If token verification fails, clear it and redirect to login
+      console.error("Middleware: Applicant token verification failed:", error);
       const response = NextResponse.redirect(new URL("/", request.url));
       response.cookies.delete("token");
       return response;
     }
   }
 
-  if (!token && isDashboardPath) {
-    console.log("Middleware: No token found, redirecting to home");
+  if (adminToken) {
+    try {
+      const isValid = verifyJWT(adminToken);
+      if (isValid) {
+        console.log("Middleware: Admin token verified successfully");
+
+        if (request.nextUrl.pathname === "/admin/login") {
+          console.log(
+            "Middleware: Admin token found, redirecting to admin dashboard"
+          );
+          return NextResponse.redirect(new URL("/admin", request.url));
+        }
+      } else {
+        const response = NextResponse.redirect(
+          new URL("/admin/login", request.url)
+        );
+        response.cookies.delete("adminToken");
+        return response;
+      }
+    } catch (error) {
+      console.error("Middleware: Admin token verification failed:", error);
+      const response = NextResponse.redirect(
+        new URL("/admin/login", request.url)
+      );
+      response.cookies.delete("adminToken");
+      return response;
+    }
+  }
+
+  if (!applicantToken && isDashboardPath) {
+    console.log("Middleware: No applicant token found, redirecting to home");
     return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  if (
+    !adminToken &&
+    isAdminPath &&
+    request.nextUrl.pathname !== "/admin/login"
+  ) {
+    console.log("Middleware: No admin token found, redirecting to admin login");
+    return NextResponse.redirect(new URL("/admin/login", request.url));
   }
 
   console.log("Middleware: Passing request through");
