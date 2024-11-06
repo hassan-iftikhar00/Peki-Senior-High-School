@@ -48,6 +48,7 @@ body {
   background-color: #f4f6f8;
   margin-top: 64px;
   width: calc(100vw - 280px);
+  margin-bottom: 30px !important;
 }
 
 /* Footer */
