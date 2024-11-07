@@ -58,7 +58,7 @@ h2 {
   margin: 0 0 16px 0;
 }
 
-input {
+/* input {
   width: 80%;
   padding: 12px;
   border: 1px solid #ccc;
@@ -69,7 +69,7 @@ input {
   margin-right: auto;
   display: block;
   background-color: #f0f0f0;
-}
+} */
 .cred {
   margin-top: 20px;
   background-color: none;

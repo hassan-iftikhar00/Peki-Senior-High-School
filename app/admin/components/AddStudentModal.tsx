@@ -62,7 +62,7 @@ export default function AddStudentModal({
       <div className="add-student-content">
         <div className="add-student-header">
           <h3>Add New Student</h3>
-          <button onClick={onClose} className="close-button">
+          <button onClick={onClose} className="close-button-add not-admin">
             ×
           </button>
         </div>
@@ -173,7 +173,7 @@ export default function AddStudentModal({
           </div>
 
           <div className="form-footer">
-            <button type="submit" className="add-student-button">
+            <button type="submit" className="add-student-button not-admin">
               Add Student
             </button>
           </div>

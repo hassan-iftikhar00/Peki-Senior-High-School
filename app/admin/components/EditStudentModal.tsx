@@ -50,7 +50,7 @@ export default function EditStudentModal({
       <div className="modal-content">
         <button
           onClick={onClose}
-          className="close-button  not-admin"
+          className="close-button-edit  not-admin"
           aria-label="Close"
         >
           <X size={24} />
