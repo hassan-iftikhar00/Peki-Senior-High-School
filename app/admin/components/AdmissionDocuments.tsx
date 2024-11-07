@@ -1,150 +1,152 @@
-"use client";
+import React, { useState, ChangeEvent } from "react";
+import { Download } from "lucide-react";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Upload, AlertCircle, FileText } from "lucide-react";
+type DocumentType =
+  | "admissionLetterTemplate"
+  | "prospectus"
+  | "personalRecordTemplate"
+  | "otherDocuments";
 
-interface BulkUploadModalProps {
-  onClose: () => void;
-  onUploadSuccess: () => void;
+interface AdmissionDocuments {
+  admissionLetterTemplate: File | null;
+  prospectus: File | null;
+  personalRecordTemplate: File | null;
+  otherDocuments: File[];
 }
 
-export default function BulkUploadModal({
-  onClose,
-  onUploadSuccess,
-}: BulkUploadModalProps) {
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
+export default function AdmissionDocuments() {
+  const [admissionDocuments, setAdmissionDocuments] =
+    useState<AdmissionDocuments>({
+      admissionLetterTemplate: null,
+      prospectus: null,
+      personalRecordTemplate: null,
+      otherDocuments: [],
+    });
 
-  // Sample CSV file URL (replace with your Cloudinary URL)
-  const sampleCsvUrl =
-    "https://res.cloudinary.com/your-cloud-name/raw/upload/v1234567890/sample_students.csv";
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFile(e.target.files[0]);
+  const handleFileUpload = (
+    documentType: DocumentType,
+    file: File | File[] | null
+  ) => {
+    if (file) {
+      setAdmissionDocuments((prev) => ({
+        ...prev,
+        [documentType]: Array.isArray(file) ? file : file,
+      }));
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!file) {
-      setError("Please select a CSV file");
-      return;
-    }
-
-    setUploading(true);
-    setError(null);
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const response = await fetch("/api/admin/students/bulk-upload", {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("Upload failed");
+  const handleFileChange = (
+    e: ChangeEvent<HTMLInputElement>,
+    documentType: DocumentType
+  ) => {
+    const files = e.target.files;
+    if (files) {
+      if (documentType === "otherDocuments") {
+        handleFileUpload(documentType, Array.from(files));
+      } else {
+        handleFileUpload(documentType, files[0]);
       }
-
-      const result = await response.json();
-      console.log("Upload successful:", result);
-      onUploadSuccess();
-      onClose();
-      router.refresh();
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      setError("Failed to upload file. Please try again.");
-    } finally {
-      setUploading(false);
     }
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h2 className="modal-title">Bulk Upload Students</h2>
-          <button onClick={onClose} className="close-button">
-            <svg className="close-icon" viewBox="0 0 24 24">
-              <path d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+    <div className="inner-content">
+      <div className="admission-documents-page">
+        <div className="documents-card">
+          <div className="documents-header">
+            <h2>Admission Documents</h2>
+            <p className="subtitle">Manage and upload admission documents.</p>
+          </div>
 
-        <form onSubmit={handleSubmit} className="upload-form">
-          <div className="file-upload-area">
-            <label htmlFor="csvFile" className="file-upload-label">
-              <div className="file-upload-content">
-                <Upload className="upload-icon" />
-                <p className="upload-text">
-                  <span className="upload-text-bold">Click to upload</span> or
-                  drag and drop
-                </p>
-                <p className="upload-subtext">CSV file only</p>
+          <div className="document-uploads">
+            <div className="document-upload-group">
+              <label>Admission Letter Template</label>
+              <div className="upload-controls">
+                <div className="file-input-wrapper">
+                  <input
+                    type="file"
+                    onChange={(e) =>
+                      handleFileChange(e, "admissionLetterTemplate")
+                    }
+                    id="admissionLetterTemplate"
+                  />
+                  <div className="file-input-text">
+                    {admissionDocuments.admissionLetterTemplate?.name ||
+                      "No file chosen"}
+                  </div>
+                </div>
+                <button className="upload-button not-admin">
+                  <Download className="h-4 w-4" />
+                  Upload
+                </button>
               </div>
-              <input
-                type="file"
-                id="csvFile"
-                accept=".csv"
-                onChange={handleFileChange}
-                className="file-input"
-              />
-            </label>
-          </div>
-          {file && <p className="selected-file">Selected file: {file.name}</p>}
-          {error && (
-            <p className="error-message">
-              <AlertCircle className="error-icon" />
-              {error}
-            </p>
-          )}
-          <div className="form-footer">
-            <button
-              type="submit"
-              className={`upload-button ${uploading ? "uploading" : ""}`}
-              disabled={uploading}
-            >
-              {uploading ? "Uploading..." : "Upload"}
-            </button>
-          </div>
-        </form>
+            </div>
 
-        <div className="instructions-section">
-          <h3 className="instructions-title">CSV Format Instructions</h3>
-          <div className="important-note">
-            <AlertCircle className="important-icon" />
-            <p className="important-text">
-              <strong>Important:</strong> The headers must match exactly as
-              shown below, including lowercase and uppercase letters.
-            </p>
-          </div>
-          <p className="instructions-text">
-            The CSV file should have the following columns with headers:
-          </p>
-          <ul className="header-list">
-            <li>fullName (required)</li>
-            <li>indexNumber (required, unique)</li>
-            <li>gender (required, 'male' or 'female')</li>
-            <li>aggregate (optional, number)</li>
-            <li>residence (optional, 'boarding' or 'day')</li>
-            <li>programme (optional)</li>
-            <li>feePaid (required, 'true' or 'false')</li>
-          </ul>
-          <div className="download-section">
-            <FileText className="download-icon" />
-            <a
-              href={sampleCsvUrl}
-              download="sample_students.csv"
-              className="download-link"
-            >
-              Download Sample CSV File
-            </a>
+            <div className="document-upload-group">
+              <label>Prospectus</label>
+              <div className="upload-controls">
+                <div className="file-input-wrapper">
+                  <input
+                    type="file"
+                    onChange={(e) => handleFileChange(e, "prospectus")}
+                    id="prospectus"
+                  />
+                  <div className="file-input-text">
+                    {admissionDocuments.prospectus?.name || "No file chosen"}
+                  </div>
+                </div>
+                <button className="upload-button not-admin">
+                  <Download className="h-4 w-4" />
+                  Upload
+                </button>
+              </div>
+            </div>
+
+            <div className="document-upload-group">
+              <label>Personal Record Template</label>
+              <div className="upload-controls">
+                <div className="file-input-wrapper">
+                  <input
+                    type="file"
+                    onChange={(e) =>
+                      handleFileChange(e, "personalRecordTemplate")
+                    }
+                    id="personalRecordTemplate"
+                  />
+                  <div className="file-input-text">
+                    {admissionDocuments.personalRecordTemplate?.name ||
+                      "No file chosen"}
+                  </div>
+                </div>
+                <button className="upload-button not-admin">
+                  <Download className="h-4 w-4" />
+                  Upload
+                </button>
+              </div>
+            </div>
+
+            <div className="document-upload-group">
+              <label>Other Documents</label>
+              <div className="upload-controls">
+                <div className="file-input-wrapper">
+                  <input
+                    type="file"
+                    multiple
+                    onChange={(e) => handleFileChange(e, "otherDocuments")}
+                    id="otherDocuments"
+                  />
+                  <div className="file-input-text">
+                    {admissionDocuments.otherDocuments.length > 0
+                      ? `${admissionDocuments.otherDocuments.length} files selected`
+                      : "No file chosen"}
+                  </div>
+                </div>
+                <button className="upload-button not-admin">
+                  <Download className="h-4 w-4" />
+                  Upload
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
