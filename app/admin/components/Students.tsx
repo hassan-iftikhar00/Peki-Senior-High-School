@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import EditStudentModal from "./EditStudentModal";
 import AddStudentModal from "./AddStudentModal";
+import BulkUploadModal from "./BulkUploadModal";
 
 interface Student {
   fullName: string;
@@ -26,6 +27,7 @@ export default function Students() {
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [deletingStudent, setDeletingStudent] = useState<Student | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -86,6 +88,27 @@ export default function Students() {
 
   const handleEditClose = () => {
     setEditingStudent(null);
+  };
+
+  const handleBulkUploadSuccess = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/admin/students-data-fetch", {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch updated students");
+      }
+
+      const data = await response.json();
+      setStudents(data);
+    } catch (error) {
+      console.error("Error fetching updated students:", error);
+      setError("Failed to refresh student list. Please reload the page.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleEditSave = async (updatedStudent: Student) => {
@@ -200,7 +223,10 @@ export default function Students() {
             >
               <span className="plus-icon">+</span> Add Applicant
             </button>
-            <button className="import-button not-admin">
+            <button
+              className="import-button not-admin"
+              onClick={() => setShowBulkUploadModal(true)}
+            >
               Bulk Import (CSV)
             </button>
           </div>
@@ -315,6 +341,12 @@ export default function Students() {
         <AddStudentModal
           onClose={() => setShowAddModal(false)}
           onAdd={handleAddStudent}
+        />
+      )}
+      {showBulkUploadModal && (
+        <BulkUploadModal
+          onClose={() => setShowBulkUploadModal(false)}
+          onUploadSuccess={handleBulkUploadSuccess}
         />
       )}
     </div>
