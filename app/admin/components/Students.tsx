@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import EditStudentModal from "./EditStudentModal";
+import AddStudentModal from "./AddStudentModal";
 
 interface Student {
   fullName: string;
@@ -23,6 +24,8 @@ export default function Students() {
   const [currentPage, setCurrentPage] = useState(1);
   const [studentsPerPage] = useState(10);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [deletingStudent, setDeletingStudent] = useState<Student | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -77,6 +80,10 @@ export default function Students() {
     setEditingStudent(student);
   };
 
+  const handleAddStudent = (newStudent: Student) => {
+    setStudents((prevStudents) => [...prevStudents, newStudent]);
+  };
+
   const handleEditClose = () => {
     setEditingStudent(null);
   };
@@ -120,6 +127,43 @@ export default function Students() {
     }
   };
 
+  const handleDeleteClick = (student: Student) => {
+    setDeletingStudent(student);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingStudent) return;
+
+    try {
+      const response = await fetch("/api/admin/students", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ indexNumber: deletingStudent.indexNumber }),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete student");
+      }
+
+      setStudents((prevStudents) =>
+        prevStudents.filter(
+          (student) => student.indexNumber !== deletingStudent.indexNumber
+        )
+      );
+      setDeletingStudent(null);
+    } catch (error) {
+      console.error("Error deleting student:", error);
+      // Handle error (e.g., show error message to user)
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeletingStudent(null);
+  };
+
   if (isLoading) {
     return <div>Loading students...</div>;
   }
@@ -150,7 +194,10 @@ export default function Students() {
             </div>
           </div>
           <div className="toolbar-right">
-            <button className="add-button not-admin">
+            <button
+              className="add-button not-admin"
+              onClick={() => setShowAddModal(true)}
+            >
               <span className="plus-icon">+</span> Add Applicant
             </button>
             <button className="import-button not-admin">
@@ -203,6 +250,7 @@ export default function Students() {
                       <button
                         className="icon-button delete-icon not-admin"
                         title="Delete"
+                        onClick={() => handleDeleteClick(student)}
                       >
                         🗑
                       </button>
@@ -236,6 +284,37 @@ export default function Students() {
           student={editingStudent}
           onClose={handleEditClose}
           onSave={handleEditSave}
+        />
+      )}
+      {deletingStudent && (
+        <div className="delete-confirmation-modal">
+          <div className="delete-confirmation-content">
+            <h3>Confirm Deletion</h3>
+            <p>
+              Are you sure you want to delete{" "}
+              <span>{deletingStudent.fullName}?</span>
+            </p>
+            <div className="delete-confirmation-buttons">
+              <button
+                onClick={handleDeleteConfirm}
+                className="confirm-delete-button"
+              >
+                Confirm
+              </button>
+              <button
+                onClick={handleDeleteCancel}
+                className="cancel-delete-button"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showAddModal && (
+        <AddStudentModal
+          onClose={() => setShowAddModal(false)}
+          onAdd={handleAddStudent}
         />
       )}
     </div>
