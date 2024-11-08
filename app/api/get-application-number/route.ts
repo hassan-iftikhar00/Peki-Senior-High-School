@@ -1,101 +1,39 @@
-// import { NextResponse } from "next/server";
-// import { connectToDatabase } from "@/lib/db";
-// import Candidate from "@/models/Candidate";
-
-// export async function GET(request: Request) {
-//   try {
-//     await connectToDatabase();
-
-//     // Get total count of candidates
-//     const count = await Candidate.countDocuments();
-
-//     // Generate formatted number
-//     const today = new Date();
-//     const dd = String(today.getDate()).padStart(2, "0");
-//     const mm = String(today.getMonth() + 1).padStart(2, "0");
-//     const yy = String(today.getFullYear()).slice(-2);
-
-//     // Format: DDMMYY-XXX where XXX is the count + 1 padded to 3 digits
-//     const applicationNumber = `${dd}${mm}${yy}-${String(count + 1).padStart(
-//       3,
-//       "0"
-//     )}`;
-
-//     // Verify this number doesn't already exist
-//     const existingNumber = await Candidate.findOne({ applicationNumber });
-//     if (existingNumber) {
-//       // In the unlikely case of a collision, increment until we find an unused number
-//       let increment = count + 2;
-//       let newNumber;
-//       do {
-//         newNumber = `${dd}${mm}${yy}-${String(increment).padStart(3, "0")}`;
-//         increment++;
-//       } while (await Candidate.findOne({ applicationNumber: newNumber }));
-
-//       return NextResponse.json({ applicationNumber: newNumber });
-//     }
-
-//     return NextResponse.json({ applicationNumber });
-//   } catch (error) {
-//     console.error("Error generating application number:", error);
-//     return NextResponse.json(
-//       { error: "Failed to generate application number" },
-//       { status: 500 }
-//     );
-//   }
-// }
-
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import Candidate from "@/models/Candidate";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     await connectToDatabase();
 
-    const { searchParams } = new URL(request.url);
-    const indexNumber = searchParams.get("indexNumber");
+    // Get the current date
+    const date = new Date();
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = String(date.getFullYear()).slice(-2);
 
-    // If index number provided, check for existing application number
-    if (indexNumber) {
-      const existingCandidate = await Candidate.findOne({ indexNumber });
-      if (existingCandidate?.applicationNumber) {
-        return NextResponse.json({
-          applicationNumber: existingCandidate.applicationNumber,
-          isExisting: true,
-        });
-      }
+    // Find the highest application number for today
+    const highestToday = await Candidate.findOne(
+      {
+        applicationNumber: new RegExp(`^${day}${month}${year}-`),
+      },
+      "applicationNumber"
+    )
+      .sort({ applicationNumber: -1 })
+      .lean();
+
+    let nextNumber = 1;
+    if (highestToday && highestToday.applicationNumber) {
+      const lastNumber = parseInt(highestToday.applicationNumber.split("-")[1]);
+      nextNumber = lastNumber + 1;
     }
 
-    // Generate new application number
-    const count = await Candidate.countDocuments();
-    const today = new Date();
-    const dd = String(today.getDate()).padStart(2, "0");
-    const mm = String(today.getMonth() + 1).padStart(2, "0");
-    const yy = String(today.getFullYear()).slice(-2);
+    // Generate the application number
+    const applicationNumber = `${day}${month}${year}-${String(
+      nextNumber
+    ).padStart(4, "0")}`;
 
-    let applicationNumber = `${dd}${mm}${yy}-${String(count + 1).padStart(
-      3,
-      "0"
-    )}`;
-
-    // Verify this number doesn't already exist
-    const existingNumber = await Candidate.findOne({ applicationNumber });
-    if (existingNumber) {
-      let increment = count + 2;
-      do {
-        applicationNumber = `${dd}${mm}${yy}-${String(increment).padStart(
-          3,
-          "0"
-        )}`;
-        increment++;
-      } while (await Candidate.findOne({ applicationNumber }));
-    }
-
-    return NextResponse.json({
-      applicationNumber,
-      isExisting: false,
-    });
+    return NextResponse.json({ applicationNumber, position: nextNumber });
   } catch (error) {
     console.error("Error generating application number:", error);
     return NextResponse.json(

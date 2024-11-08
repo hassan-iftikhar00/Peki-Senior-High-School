@@ -290,14 +290,29 @@ const formatFileData = (file: string | FileData): FileData => {
   return fileData;
 };
 
-const generateApplicationNumber = (): string => {
+async function generateUniqueApplicationNumber(): Promise<string> {
   const date = new Date();
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const year = String(date.getFullYear()).slice(-2);
-  const random = Math.floor(1000 + Math.random() * 9000);
-  return `${day}${month}${year}-${random}`;
-};
+
+  const highestToday = await Candidate.findOne(
+    {
+      applicationNumber: new RegExp(`^${day}${month}${year}-`),
+    },
+    "applicationNumber"
+  )
+    .sort({ applicationNumber: -1 })
+    .lean();
+
+  let nextNumber = 1;
+  if (highestToday && highestToday.applicationNumber) {
+    const lastNumber = parseInt(highestToday.applicationNumber.split("-")[1]);
+    nextNumber = lastNumber + 1;
+  }
+
+  return `${day}${month}${year}-${String(nextNumber).padStart(4, "0")}`;
+}
 
 export async function POST(request: Request) {
   let session: mongoose.ClientSession | undefined;
@@ -384,10 +399,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Handle applicationNumber
+    // Generate or validate application number
     let applicationNumber = candidateData.applicationNumber;
     if (!applicationNumber || !/^\d{6}-\d{4}$/.test(applicationNumber)) {
-      applicationNumber = generateApplicationNumber();
+      applicationNumber = await generateUniqueApplicationNumber();
     }
 
     // Prepare formatted data
@@ -406,22 +421,42 @@ export async function POST(request: Request) {
     };
 
     let updatedCandidate;
-    if (existingCandidate) {
-      // Update existing candidate
-      updatedCandidate = await Candidate.findOneAndUpdate(
-        { indexNumber: candidateData.indexNumber },
-        formattedData,
-        { new: true, runValidators: true, session }
-      );
-    } else {
-      // Create new candidate
-      updatedCandidate = new Candidate(formattedData);
-      await updatedCandidate.save({ session });
+    let attempts = 0;
+    const maxAttempts = 5;
 
-      // Increase occupancy of the assigned house only for new candidates
-      await House.findByIdAndUpdate(houseId, {
-        $inc: { currentOccupancy: 1 },
-      }).session(session);
+    while (attempts < maxAttempts) {
+      try {
+        if (existingCandidate) {
+          // Update existing candidate
+          updatedCandidate = await Candidate.findOneAndUpdate(
+            { indexNumber: candidateData.indexNumber },
+            formattedData,
+            { new: true, runValidators: true, session }
+          );
+        } else {
+          // Create new candidate
+          updatedCandidate = new Candidate(formattedData);
+          await updatedCandidate.save({ session });
+
+          // Increase occupancy of the assigned house only for new candidates
+          await House.findByIdAndUpdate(houseId, {
+            $inc: { currentOccupancy: 1 },
+          }).session(session);
+        }
+        break; // If successful, exit the loop
+      } catch (error) {
+        if (
+          error instanceof mongoose.Error.ValidationError &&
+          error.errors.applicationNumber
+        ) {
+          // If duplicate key error on applicationNumber, generate a new one
+          attempts++;
+          applicationNumber = await generateUniqueApplicationNumber();
+          formattedData.applicationNumber = applicationNumber;
+        } else {
+          throw error; // If it's a different error, throw it
+        }
+      }
     }
 
     if (!updatedCandidate) {

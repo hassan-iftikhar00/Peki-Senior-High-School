@@ -87,14 +87,7 @@ const CandidateSchema = new mongoose.Schema<ICandidateDocument>(
     action: { type: String },
     applicationNumber: {
       type: String,
-      required: false,
-      validate: {
-        validator: function (v: string) {
-          return !v || /^\d{6}-\d{4}$/.test(v);
-        },
-        message: (props: { value: string }) =>
-          `${props.value} is not a valid application number! Format should be XXXXXX-XXXX`,
-      },
+      unique: true,
     },
     guardianInfo: {
       guardianName: { type: String },

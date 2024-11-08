@@ -87,36 +87,57 @@ export default function Submit({
   const [isGeneratingNumber, setIsGeneratingNumber] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
 
+  const [position, setPosition] = useState(0);
   useEffect(() => {
-    // If the application was previously submitted, set the status accordingly
     if (isSubmitted) {
       setSubmissionStatus("SUBMITTED");
-      // If there's an application number in the props, set it
       if (applicantData.applicationNumber) {
         setApplicationNumber(applicantData.applicationNumber);
       }
+    } else {
+      fetchApplicationNumber();
     }
   }, [isSubmitted, applicantData.applicationNumber]);
 
-  const generateApplicationNumber = async (): Promise<boolean> => {
+  const fetchApplicationNumber = async () => {
     setIsGeneratingNumber(true);
     try {
       const response = await fetch("/api/get-application-number");
       if (!response.ok) throw new Error("Failed to get application number");
       const data = await response.json();
-      if (data.applicationNumber) {
+      if (data.applicationNumber && data.position) {
         setApplicationNumber(data.applicationNumber);
-        return true;
+        setPosition(data.position);
+      } else {
+        throw new Error("No application number or position received");
       }
-      throw new Error("No application number received");
     } catch (error) {
       console.error("Error getting application number:", error);
       setErrors((prev) => [...prev, "Failed to generate application number"]);
-      return false;
     } finally {
       setIsGeneratingNumber(false);
     }
   };
+
+  // const generateApplicationNumber = async (): Promise<boolean> => {
+  //   setIsGeneratingNumber(true);
+  //   try {
+  //     const response = await fetch("/api/get-application-number");
+  //     if (!response.ok) throw new Error("Failed to get application number");
+  //     const data = await response.json();
+  //     if (data.applicationNumber) {
+  //       setApplicationNumber(data.applicationNumber);
+  //       return true;
+  //     }
+  //     throw new Error("No application number received");
+  //   } catch (error) {
+  //     console.error("Error getting application number:", error);
+  //     setErrors((prev) => [...prev, "Failed to generate application number"]);
+  //     return false;
+  //   } finally {
+  //     setIsGeneratingNumber(false);
+  //   }
+  // };
 
   const validateRequiredFields = () => {
     const newErrors: string[] = [];
@@ -162,12 +183,10 @@ export default function Submit({
     setSubmissionStatus("PENDING");
 
     if (!applicationNumber) {
-      const success = await generateApplicationNumber();
-      if (!success) {
-        setIsPending(false);
-        setSubmissionStatus("FAILED");
-        return;
-      }
+      setErrors(["Application number is not available. Please try again."]);
+      setIsPending(false);
+      setSubmissionStatus("FAILED");
+      return;
     }
 
     const validationErrors = validateRequiredFields();
@@ -203,6 +222,7 @@ export default function Submit({
       house: houseData,
       uploads: formattedUploads,
       applicationNumber: applicationNumber,
+      position: position,
     };
 
     setLoadingMessage("Submitting your application...");
@@ -276,17 +296,32 @@ export default function Submit({
       const data = await response.json();
 
       if (response.ok) {
-        setSubmissionMessage("Changes saved successfully!");
-        onSave();
+        if (data.applicationNumber !== applicationNumber) {
+          setApplicationNumber(data.applicationNumber);
+          setPosition(data.position);
+        }
+        setSubmissionMessage(
+          `Application submitted successfully! Your application number is: ${data.applicationNumber}`
+        );
+        setSubmissionStatus("SUBMITTED");
+        onSubmit();
       } else {
-        setSubmissionMessage(`Failed to save changes: ${data.error}`);
-        setErrors([data.error]);
+        let errorMessage = data.error || "Unknown error occurred";
+        if (errorMessage.includes("No available houses")) {
+          errorMessage =
+            "No available houses. Please contact the administration.";
+        }
+        setSubmissionMessage(`Failed to submit application: ${errorMessage}`);
+        setSubmissionStatus("FAILED");
+        setErrors([errorMessage]);
       }
     } catch (error) {
-      console.error("Save error:", error);
-      setSubmissionMessage("An error occurred while saving changes.");
-      setErrors(["An unexpected error occurred while saving changes."]);
+      console.error("Submission error:", error);
+      setSubmissionMessage("An error occurred during submission.");
+      setSubmissionStatus("FAILED");
+      setErrors(["An unexpected error occurred. Please try again later."]);
     } finally {
+      setLoadingMessage("");
       setIsPending(false);
     }
   };
@@ -298,11 +333,12 @@ export default function Submit({
       <p className="subtitle headings">
         Review your information before submitting!
       </p>
-      {applicationNumber && (
+      {submissionStatus === "SUBMITTED" && applicationNumber && (
         <div className="application-number-container">
           <p className="application-number">
             Your Application Number: <span>{applicationNumber}</span>
           </p>
+
           <p className="reference-text">
             Please save this number for future reference
           </p>
