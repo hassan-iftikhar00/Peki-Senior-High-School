@@ -203,6 +203,7 @@ export default function AdminLoginPage() {
               cursor: "pointer",
               marginLeft: "auto",
               marginRight: "auto",
+              marginTop: "20px",
               display: "block",
               opacity: isLoading ? 0.5 : 1,
             }}
