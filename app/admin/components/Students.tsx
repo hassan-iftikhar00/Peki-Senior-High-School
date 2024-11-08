@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import EditStudentModal from "./EditStudentModal";
@@ -30,12 +30,18 @@ export default function Students() {
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchStudents = async () => {
+  const fetchStudents = useCallback(
+    async (page: number) => {
       try {
-        const response = await fetch("/api/admin/students-data-fetch", {
-          credentials: "include",
-        });
+        const response = await fetch(
+          `/api/admin/students-data-fetch?page=${page}&limit=${studentsPerPage}`,
+          {
+            credentials: "include",
+            headers: {
+              "Cache-Control": "max-age=60", // Cache for 60 seconds
+            },
+          }
+        );
 
         if (!response.ok) {
           if (response.status === 401) {
@@ -47,17 +53,21 @@ export default function Students() {
         }
 
         const data = await response.json();
-        setStudents(data);
+        setStudents((prevStudents) => [...prevStudents, ...data.students]);
+        setCurrentPage(data.currentPage);
       } catch (error) {
         console.error("Error fetching students:", error);
         setError("Failed to load students. Please try again later.");
       } finally {
         setIsLoading(false);
       }
-    };
+    },
+    [router, studentsPerPage]
+  );
 
-    fetchStudents();
-  }, [router]);
+  useEffect(() => {
+    fetchStudents(currentPage);
+  }, [fetchStudents, currentPage]);
 
   const filteredStudents = students.filter((student) =>
     Object.values(student).some((value) =>

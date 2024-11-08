@@ -40,12 +40,21 @@ export async function GET(request: NextRequest) {
     await connectToDatabase();
     console.log("Admin students API: Connected to database");
 
+    const url = new URL(request.url);
+    const page = parseInt(url.searchParams.get("page") || "1", 10);
+    const limit = parseInt(url.searchParams.get("limit") || "10", 10);
+    const skip = (page - 1) * limit;
+
     const candidates = await Candidate.find({})
       .select(
         "fullName indexNumber gender aggregate residence programme feePaid"
       )
+      .skip(skip)
+      .limit(limit)
       .lean()
       .exec();
+
+    const totalCount = await Candidate.countDocuments({});
 
     console.log(
       "Admin students API: Candidates found:",
@@ -63,7 +72,19 @@ export async function GET(request: NextRequest) {
     }));
 
     console.log("Admin students API: Sending transformed candidate data");
-    return NextResponse.json(transformedCandidates);
+    return NextResponse.json(
+      {
+        students: transformedCandidates,
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit),
+        totalCount,
+      },
+      {
+        headers: {
+          "Cache-Control": "max-age=60, s-maxage=60, stale-while-revalidate=60",
+        },
+      }
+    );
   } catch (error) {
     console.error("Admin students API: Error fetching candidate data:", error);
     return NextResponse.json(
