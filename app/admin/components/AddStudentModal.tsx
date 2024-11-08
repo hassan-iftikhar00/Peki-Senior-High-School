@@ -77,7 +77,7 @@ export default function AddStudentModal({
               name="fullName"
               value={formData.fullName}
               onChange={handleChange}
-              className="form-input"
+              className="form-input not-admin-input"
             />
           </div>
 
@@ -90,7 +90,7 @@ export default function AddStudentModal({
               value={formData.indexNumber}
               onChange={handleChange}
               required
-              className="form-input"
+              className="form-input not-admin-input"
             />
           </div>
 
@@ -118,7 +118,7 @@ export default function AddStudentModal({
               name="aggregate"
               value={formData.aggregate}
               onChange={handleChange}
-              className="form-input"
+              className="form-input not-admin-input"
             />
           </div>
 

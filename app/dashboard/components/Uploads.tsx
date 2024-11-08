@@ -208,7 +208,7 @@ export default function Uploads({
                   accept=".pdf,.jpg,.jpeg,.png"
                   multiple={key === "placementForm" || key === "medicalRecords"}
                   required={key !== "medicalRecords"}
-                  className="hidden"
+                  className="hidden candidate upload"
                   onChange={(e) => handleFileUpload(e, key)}
                   disabled={isUploading[key] || isDisabled}
                 />

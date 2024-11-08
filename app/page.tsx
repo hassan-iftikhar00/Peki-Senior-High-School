@@ -9,6 +9,7 @@ import InvalidIndexPopup from "../components/InvalidIndexPopup";
 import ApplicantPopup from "../components/ApplicantPopup";
 import RecoverLoginPopup from "../components/RecoverLoginPopup";
 import LoadingOverlay from "@/components/LoadingOverlay";
+import "./input.css";
 
 interface CandidateInfo {
   fullName: string;

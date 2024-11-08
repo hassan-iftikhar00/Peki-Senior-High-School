@@ -1599,7 +1599,7 @@ button:active {
   font-size: 0.875rem;
   font-weight: 500;
   color: white;
-  background-color: #2563eb;
+  background-color: orange;
   border: none;
   border-radius: 0.375rem;
   cursor: pointer;

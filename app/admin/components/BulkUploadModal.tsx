@@ -151,7 +151,7 @@ export default function BulkUploadModal({
                 id="csvFile"
                 accept=".csv"
                 onChange={handleInputChange}
-                className="bulk-upload-file-input"
+                className="bulk-upload-file-input not-admin-input"
                 ref={fileInputRef}
               />
             </label>

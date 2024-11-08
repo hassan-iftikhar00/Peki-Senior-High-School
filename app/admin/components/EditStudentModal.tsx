@@ -63,6 +63,7 @@ export default function EditStudentModal({
               type="text"
               id="fullName"
               name="fullName"
+              className="not-admin-input"
               value={editedStudent.fullName}
               onChange={handleChange}
               required
@@ -74,6 +75,7 @@ export default function EditStudentModal({
               type="text"
               id="indexNumber"
               name="indexNumber"
+              className="not-admin-input"
               value={editedStudent.indexNumber}
               onChange={handleChange}
               required
@@ -98,6 +100,7 @@ export default function EditStudentModal({
               type="number"
               id="aggregate"
               name="aggregate"
+              className="not-admin-input"
               value={editedStudent.aggregate}
               onChange={handleChange}
               required
@@ -109,6 +112,7 @@ export default function EditStudentModal({
               type="text"
               id="residence"
               name="residence"
+              className="not-admin-input"
               value={editedStudent.residence}
               onChange={handleChange}
               required
@@ -120,6 +124,7 @@ export default function EditStudentModal({
               type="text"
               id="programme"
               name="programme"
+              className="not-admin-input"
               value={editedStudent.programme}
               onChange={handleChange}
               required

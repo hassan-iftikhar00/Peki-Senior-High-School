@@ -419,14 +419,10 @@ body {
   color: white;
 }
 
-
-
 /* Secondary button styles (for prospectus) */
 .action-button.secondary {
   background-color: #16a34a; /* green-600 */
 }
-
-
 
 /* Disabled state */
 .action-button:disabled {
