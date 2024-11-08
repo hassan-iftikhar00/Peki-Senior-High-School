@@ -290,6 +290,15 @@ const formatFileData = (file: string | FileData): FileData => {
   return fileData;
 };
 
+const generateApplicationNumber = (): string => {
+  const date = new Date();
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = String(date.getFullYear()).slice(-2);
+  const random = Math.floor(1000 + Math.random() * 9000);
+  return `${day}${month}${year}-${random}`;
+};
+
 export async function POST(request: Request) {
   let session: mongoose.ClientSession | undefined;
   try {
@@ -375,6 +384,12 @@ export async function POST(request: Request) {
       );
     }
 
+    // Handle applicationNumber
+    let applicationNumber = candidateData.applicationNumber;
+    if (!applicationNumber || !/^\d{6}-\d{4}$/.test(applicationNumber)) {
+      applicationNumber = generateApplicationNumber();
+    }
+
     // Prepare formatted data
     const formattedData = {
       ...candidateData,
@@ -387,18 +402,8 @@ export async function POST(request: Request) {
         selectedClass:
           candidateData.academicInfo.selectedClass || "Not Specified",
       },
+      applicationNumber,
     };
-
-    // Handle applicationNumber
-    if (
-      formattedData.applicationNumber &&
-      !/^\d{6}-\d{4}$/.test(formattedData.applicationNumber)
-    ) {
-      console.log(
-        `Invalid application number: ${formattedData.applicationNumber}`
-      );
-      delete formattedData.applicationNumber;
-    }
 
     let updatedCandidate;
     if (existingCandidate) {
