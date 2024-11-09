@@ -1,5 +1,6 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
-import { X } from "lucide-react";
 
 interface Student {
   fullName: string;
@@ -12,7 +13,7 @@ interface Student {
 }
 
 interface EditStudentModalProps {
-  student: Student | null;
+  student: Student;
   onClose: () => void;
   onSave: (updatedStudent: Student) => void;
 }
@@ -22,141 +23,144 @@ export default function EditStudentModal({
   onClose,
   onSave,
 }: EditStudentModalProps) {
-  const [editedStudent, setEditedStudent] = useState<Student | null>(null);
+  const [formData, setFormData] = useState<Student>(student);
 
   useEffect(() => {
-    setEditedStudent(student);
+    setFormData(student);
   }, [student]);
 
-  if (!editedStudent) return null;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value, type } = e.target;
-    setEditedStudent((prev) => ({
-      ...prev!,
-      [name]: type === "number" ? Number(value) : value,
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "feePaid" ? value === "paid" : value,
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(editedStudent);
-  };
-
   return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <button
-          onClick={onClose}
-          className="close-button-edit  not-admin"
-          aria-label="Close"
-        >
-          <X size={24} />
-        </button>
-        <h2 className="modal-title">Edit Student</h2>
-        <form onSubmit={handleSubmit} className="edit-form">
+    <div className="delete-confirmation-modal">
+      <div className="add-student-content">
+        <div className="add-student-header">
+          <h3>Edit Student</h3>
+          <button onClick={onClose} className="close-button-add not-admin">
+            ×
+          </button>
+        </div>
+        <p className="subtitle">Edit the student's information.</p>
+
+        <form onSubmit={handleSubmit} className="add-student-form">
           <div className="form-group">
-            <label htmlFor="fullName">Full Name</label>
+            <label htmlFor="fullName">Name</label>
             <input
               type="text"
               id="fullName"
               name="fullName"
-              className="not-admin-input"
-              value={editedStudent.fullName}
+              value={formData.fullName}
               onChange={handleChange}
-              required
+              className="form-input not-admin-input"
             />
           </div>
+
           <div className="form-group">
-            <label htmlFor="indexNumber">Index Number</label>
+            <label htmlFor="indexNumber">Index Number </label>
             <input
               type="text"
               id="indexNumber"
               name="indexNumber"
-              className="not-admin-input"
-              value={editedStudent.indexNumber}
+              value={formData.indexNumber}
               onChange={handleChange}
               required
+              className="form-input not-admin-input"
             />
           </div>
+
           <div className="form-group">
-            <label htmlFor="gender">Gender</label>
+            <label htmlFor="gender">Gender </label>
             <select
               id="gender"
               name="gender"
-              value={editedStudent.gender}
+              value={formData.gender}
               onChange={handleChange}
               required
+              className="form-select"
             >
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
+              <option value="">Select gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
             </select>
           </div>
+
           <div className="form-group">
             <label htmlFor="aggregate">Aggregate</label>
             <input
               type="number"
               id="aggregate"
               name="aggregate"
-              className="not-admin-input"
-              value={editedStudent.aggregate}
+              value={formData.aggregate}
               onChange={handleChange}
-              required
+              className="form-input not-admin-input"
             />
           </div>
+
           <div className="form-group">
             <label htmlFor="residence">Residence</label>
-            <input
-              type="text"
+            <select
               id="residence"
               name="residence"
-              className="not-admin-input"
-              value={editedStudent.residence}
+              value={formData.residence}
               onChange={handleChange}
-              required
-            />
+              className="form-select"
+            >
+              <option value="">Select residence</option>
+              <option value="boarding">Boarding</option>
+              <option value="day">Day</option>
+            </select>
           </div>
+
           <div className="form-group">
             <label htmlFor="programme">Programme</label>
-            <input
-              type="text"
+            <select
               id="programme"
               name="programme"
-              className="not-admin-input"
-              value={editedStudent.programme}
+              value={formData.programme}
               onChange={handleChange}
-              required
-            />
+              className="form-select"
+            >
+              <option value="">Select programme</option>
+              <option value="science">General Arts</option>
+              <option value="arts">General Science</option>
+              <option value="business">Business</option>
+              <option value="agriculturalscience">Agricultural Science</option>
+              <option value="homeeconomics">Home Economics</option>
+              <option value="visualarts">Visual Arts</option>
+            </select>
           </div>
+
           <div className="form-group">
-            <label htmlFor="feePaid">Fee Paid</label>
+            <label htmlFor="feePaid">Payment Status </label>
             <select
               id="feePaid"
               name="feePaid"
-              value={editedStudent.feePaid.toString()}
-              onChange={(e) =>
-                setEditedStudent((prev) => ({
-                  ...prev!,
-                  feePaid: e.target.value === "true",
-                }))
-              }
+              value={formData.feePaid ? "paid" : "unpaid"}
+              onChange={handleChange}
               required
+              className="form-select"
             >
-              <option value="true">Paid</option>
-              <option value="false">Unpaid</option>
+              <option value="">Select payment status</option>
+              <option value="paid">Paid</option>
+              <option value="unpaid">Unpaid</option>
             </select>
           </div>
-          <div className="button-group">
-            <button
-              type="button"
-              onClick={onClose}
-              className="cancel-button not-admin"
-            >
-              Cancel
-            </button>
-            <button type="submit" className="save-button not-admin">
+
+          <div className="form-footer">
+            <button type="submit" className="add-student-button not-admin">
               Save Changes
             </button>
           </div>
