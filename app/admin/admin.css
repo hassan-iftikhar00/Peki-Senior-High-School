@@ -2392,6 +2392,11 @@ button:active {
   margin-bottom: 24px;
 }
 
+.houses-toolbar-left {
+  display: flex;
+  gap: 10px;
+}
+
 .houses-card {
   background-color: white;
   border-radius: 12px;
@@ -2483,6 +2488,196 @@ button:active {
     padding: 12px 16px;
   }
 }
+
+.gender-filter {
+  appearance: none;
+  background-color: white;
+  border: 1px solid orange;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #101828;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gender-filter:hover {
+  border-color: #8d744a;
+}
+
+.gender-filter:focus {
+  outline: none;
+  border-radius: 8px;
+  box-shadow: 0 0 0 4px rgba(141, 116, 74, 0.1);
+}
+
+.add-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #8d744a;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.plus-icon {
+  font-size: 18px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pagination-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background-color: white;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-button:hover:not(:disabled) {
+  background-color: #f9fafb;
+}
+
+.pagination-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: #475467;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 14px;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #8d744a;
+  box-shadow: 0 0 0 4px rgba(141, 116, 74, 0.1);
+}
+
+.houses-table th {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.houses-table th:hover {
+  background-color: #f9fafb;
+}
+
+@media (max-width: 768px) {
+  .houses-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .gender-filter,
+  .add-button {
+    width: 100%;
+  }
+}
+
+/* ADD HOUSE POPUP$$$$ */
+
+.house-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.house-popup-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 5px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.house-popup-title {
+  font-size: 1.5em;
+  margin-bottom: 20px;
+}
+
+.house-form-group {
+  margin-bottom: 15px;
+}
+
+.house-form-group label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.house-form-input,
+.house-form-select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.house-error-message {
+  color: red;
+  margin-bottom: 15px;
+}
+
+.house-button-group {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.house-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.house-primary-button {
+  background-color: orange;
+  color: white;
+}
+
+.house-secondary-button {
+  background-color: black;
+  color: white;
+}
+
+.house-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Logs page specific styles */
 .logs-page {
   padding: 24px;
