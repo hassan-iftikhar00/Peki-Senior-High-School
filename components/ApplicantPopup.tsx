@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useSchoolSettings } from "@/app/contexts/SchoolSettingsContext";
 
 interface CandidateInfo {
   fullName: string;
@@ -36,6 +37,7 @@ export default function ApplicantPopup({
   const [hasCredentials, setHasCredentials] = useState(false);
   const router = useRouter();
   const paymentWindowRef = useRef<Window | null>(null);
+  const { settings } = useSchoolSettings();
 
   const handleBuyVoucher = () => {
     if (phoneNumber.length === 10 && phoneNumber[0] === "0") {
@@ -64,7 +66,7 @@ export default function ApplicantPopup({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          totalAmount: 60,
+          totalAmount: settings.voucherPrice,
           description: "Peki Senior High School Application Fee",
           clientReference: `PEKI-${Date.now()}`,
           indexNumber: candidateInfo.indexNumber,

@@ -1936,6 +1936,17 @@ button:active {
 }
 
 /* Actions page specific styles */
+
+.actionspage-error-message {
+  margin-bottom: 20px;
+  color: red;
+}
+
+.actionspage-success-message {
+  margin-bottom: 20px;
+  color: green;
+}
+
 .actions-page {
   padding: 24px;
   background-color: #f4f6f8;

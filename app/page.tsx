@@ -9,6 +9,7 @@ import InvalidIndexPopup from "../components/InvalidIndexPopup";
 import ApplicantPopup from "../components/ApplicantPopup";
 import RecoverLoginPopup from "../components/RecoverLoginPopup";
 import LoadingOverlay from "@/components/LoadingOverlay";
+import { useSchoolSettings } from "@/app/contexts/SchoolSettingsContext";
 import "./input.css";
 
 interface CandidateInfo {
@@ -43,6 +44,8 @@ export default function Home() {
   const [recoveredPin, setRecoveredPin] = useState("");
 
   const router = useRouter();
+
+  const { settings } = useSchoolSettings();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -162,7 +165,7 @@ export default function Home() {
         body: JSON.stringify({
           phoneNumber,
           indexNumber: verifiedIndexNumber,
-          totalAmount: 60, // Set the correct amount
+          totalAmount: settings.voucherPrice,
           description: "Application Fee",
         }),
       });

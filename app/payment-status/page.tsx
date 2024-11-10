@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useSchoolSettings } from "@/app/contexts/SchoolSettingsContext";
 
 export default function PaymentStatusPage() {
   const router = useRouter();
@@ -9,6 +10,7 @@ export default function PaymentStatusPage() {
   const [message, setMessage] = useState("Processing payment...");
   const [retries, setRetries] = useState(10);
   const [checkInterval, setCheckInterval] = useState(5000);
+  const { settings } = useSchoolSettings();
 
   useEffect(() => {
     const clientReference = searchParams.get("clientReference");
@@ -32,7 +34,10 @@ export default function PaymentStatusPage() {
       const data = await response.json();
 
       if (data.success) {
-        setMessage("Payment successful! Your application fee has been paid.");
+        setMessage(
+          settings.voucherMessage ||
+            "Payment successful! Your application fee has been paid."
+        );
         setTimeout(() => router.push("/"), 3000);
       } else if (data.status === "pending" && retries > 0) {
         setMessage("Payment is still processing. Please wait...");
