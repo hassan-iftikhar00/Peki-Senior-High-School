@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useSchoolSettings } from "@/app/contexts/SchoolSettingsContext";
+import { Settings } from "lucide-react";
 
 export default function VerifyIndexPage({
   onVerify,
@@ -9,17 +11,18 @@ export default function VerifyIndexPage({
   onVerify: (indexNumber: string) => void;
 }) {
   const [indexNumber, setIndexNumber] = useState("");
+  const { settings } = useSchoolSettings();
 
   return (
     <div className="card">
       <Image
-        src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/pesco-ypQANIO5MV7swwJQueIYrxVza3zlu1.jpg"
-        alt="Peki Senior High School Logo"
+        src={settings.logo}
+        alt={`${settings.name} Logo`}
         width={80}
         height={80}
         className="logo"
       />
-      <h1>Peki Senior High School</h1>
+      <h1>{settings.name}</h1>
       <h2>Verify Index Number</h2>
       <input
         type="text"

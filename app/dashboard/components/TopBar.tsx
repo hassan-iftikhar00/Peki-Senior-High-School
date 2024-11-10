@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import LoadingOverlay from "@/components/LoadingOverlay";
 
+import { useSchoolSettings } from "@/app/contexts/SchoolSettingsContext";
 interface TopBarProps {
   applicantName: string;
   passportPhoto?: string;
@@ -12,6 +13,7 @@ interface TopBarProps {
 export default function TopBar({ applicantName, passportPhoto }: TopBarProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
+  const { settings } = useSchoolSettings();
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -53,15 +55,15 @@ export default function TopBar({ applicantName, passportPhoto }: TopBarProps) {
         <div className="school-name">
           <div className="TopBarItems">
             <Image
-              src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/pesco-ypQANIO5MV7swwJQueIYrxVza3zlu1.jpg"
-              alt="Peki Senior High School Logo"
+              src={settings.logo}
+              alt={`${settings.name} Logo`}
               width={40}
               height={40}
               className="school-logo"
             />
           </div>
           <div className="TopBarItems">
-            <span style={{ fontWeight: "bold" }}> Peki Senior High School</span>
+            <span style={{ fontWeight: "bold" }}> {settings.name}</span>
           </div>
         </div>
         <div className="user-info">

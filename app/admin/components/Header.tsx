@@ -93,6 +93,7 @@
 import React, { useState } from "react";
 import { Bell, ChevronDown, Menu, User, Settings, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useSchoolSettings } from "@/app/contexts/SchoolSettingsContext";
 
 interface HeaderProps {
   toggleSidebar: () => void;
@@ -102,6 +103,7 @@ export default function Header({ toggleSidebar }: HeaderProps) {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [notifications] = useState(3); // Example notification count
   const router = useRouter();
+  const { settings } = useSchoolSettings();
 
   const handleLogout = async () => {
     try {
@@ -127,7 +129,7 @@ export default function Header({ toggleSidebar }: HeaderProps) {
           <Menu className="h-5 w-5" />
           <span className="sr-only">Toggle sidebar</span>
         </button>
-        <h1 className="header-title">Peki Senior High School</h1>
+        <h1 className="header-title">{settings.name}</h1>
       </div>
 
       <div className="header-end">

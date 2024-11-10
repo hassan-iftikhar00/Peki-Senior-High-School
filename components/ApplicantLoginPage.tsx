@@ -2,6 +2,7 @@ import Image from "next/image";
 import { useState, useCallback, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useSchoolSettings } from "@/app/contexts/SchoolSettingsContext";
 
 interface ApplicantLoginPageProps {
   onRecoverLink: () => void;
@@ -23,6 +24,7 @@ export default function ApplicantLoginPage({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const { settings } = useSchoolSettings();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -82,8 +84,8 @@ export default function ApplicantLoginPage({
       >
         <div>
           <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/pesco-ypQANIO5MV7swwJQueIYrxVza3zlu1.jpg"
-            alt="Peki Senior High School Logo"
+            src={settings.logo}
+            alt={`${settings.name} Logo`}
             width={80}
             height={80}
             style={{
@@ -103,7 +105,7 @@ export default function ApplicantLoginPage({
               margin: "0 0 16px 0",
             }}
           >
-            Peki Senior High School
+            {settings.name}
           </h1>
           <h2
             style={{

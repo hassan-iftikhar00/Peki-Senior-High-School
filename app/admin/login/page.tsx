@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
+import { useSchoolSettings } from "@/app/contexts/SchoolSettingsContext";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
@@ -12,6 +13,7 @@ export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const { settings } = useSchoolSettings();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -76,8 +78,8 @@ export default function AdminLoginPage() {
       >
         <div>
           <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/pesco-ypQANIO5MV7swwJQueIYrxVza3zlu1.jpg"
-            alt="Peki Senior High School Logo"
+            src={settings.logo}
+            alt={`${settings.name} Logo`}
             width={80}
             height={80}
             style={{
@@ -97,7 +99,7 @@ export default function AdminLoginPage() {
               margin: "0 0 16px 0",
             }}
           >
-            Peki Senior High School
+            {settings.name}{" "}
           </h1>
           <h2
             style={{
