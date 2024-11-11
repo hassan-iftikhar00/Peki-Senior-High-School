@@ -147,12 +147,12 @@ export default function AddStudentModal({
               className="form-select"
             >
               <option value="">Select programme</option>
-              <option value="science">General Arts</option>
-              <option value="arts">General Science</option>
-              <option value="business">Business</option>
-              <option value="agriculturalscience">Agricultural Science</option>
-              <option value="homeeconomics">Home Economics</option>
-              <option value="visualarts">Visual Arts</option>
+              <option value="General Arts">General Arts</option>
+              <option value="General Science">General Science</option>
+              <option value="Business">Business</option>
+              <option value="Agricultural Science">Agricultural Science</option>
+              <option value="Home Economics">Home Economics</option>
+              <option value="Visual Arts">Visual Arts</option>
             </select>
           </div>
 
