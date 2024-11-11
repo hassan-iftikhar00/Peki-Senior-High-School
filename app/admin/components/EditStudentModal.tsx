@@ -36,6 +36,7 @@ export default function EditStudentModal({
   const [houses, setHouses] = useState<House[]>([]);
 
   useEffect(() => {
+    console.log("Student data in modal:", student);
     setFormData(student);
     fetchHouses();
   }, [student]);
@@ -65,7 +66,7 @@ export default function EditStudentModal({
     const { name, value } = e.target;
     setFormData((prev) => {
       if (name === "feePaid") {
-        return { ...prev, [name]: value === "paid" };
+        return { ...prev, [name]: value === "true" };
       } else if (name === "house") {
         const selectedHouse = houses.find((h) => h._id === value);
         return {
@@ -73,10 +74,49 @@ export default function EditStudentModal({
           houseId: value,
           houseName: selectedHouse ? selectedHouse.name : undefined,
         };
+      } else if (name === "gender") {
+        return {
+          ...prev,
+          [name]: value.charAt(0).toUpperCase() + value.slice(1).toLowerCase(),
+        };
+      } else if (name === "residence") {
+        return {
+          ...prev,
+          [name]: value.charAt(0).toUpperCase() + value.slice(1).toLowerCase(),
+        };
+      } else if (name === "programme") {
+        return { ...prev, [name]: value.toUpperCase() };
       } else {
         return { ...prev, [name]: value };
       }
     });
+  };
+
+  console.log("Current formData:", formData);
+
+  const genderOptions = ["Male", "Female"];
+  const residenceOptions = ["Boarding", "Day"];
+  const programmeOptions = [
+    "VISUAL ARTS",
+    "GENERAL ARTS",
+    "GENERAL SCIENCE",
+    "BUSINESS",
+    "AGRICULTURAL SCIENCE",
+    "HOME ECONOMICS",
+  ];
+
+  const getSelectedValue = (options: string[], value: string | undefined) => {
+    if (!value) return "";
+    const lowercaseValue = value.toLowerCase();
+    const matchedOption = options.find(
+      (option) => option.toLowerCase() === lowercaseValue
+    );
+    console.log(
+      `Matching ${value} (${lowercaseValue}) against options:`,
+      options,
+      `Result: ${matchedOption}`
+    );
+    return matchedOption || value; // Return the original value if no match is found
   };
 
   return (
@@ -121,14 +161,17 @@ export default function EditStudentModal({
             <select
               id="gender"
               name="gender"
-              value={formData.gender || ""}
+              value={getSelectedValue(genderOptions, formData.gender)}
               onChange={handleChange}
               required
               className="form-select"
             >
               <option value="">Select gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
+              {genderOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -149,13 +192,16 @@ export default function EditStudentModal({
             <select
               id="residence"
               name="residence"
-              value={formData.residence || ""}
+              value={getSelectedValue(residenceOptions, formData.residence)}
               onChange={handleChange}
               className="form-select"
             >
               <option value="">Select residence</option>
-              <option value="boarding">Boarding</option>
-              <option value="day">Day</option>
+              {residenceOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -164,17 +210,16 @@ export default function EditStudentModal({
             <select
               id="programme"
               name="programme"
-              value={formData.programme || ""}
+              value={getSelectedValue(programmeOptions, formData.programme)}
               onChange={handleChange}
               className="form-select"
             >
               <option value="">Select programme</option>
-              <option value="General Arts">General Arts</option>
-              <option value="General Science">General Science</option>
-              <option value="Business">Business</option>
-              <option value="Agricultural Science">Agricultural Science</option>
-              <option value="Home Economics">Home Economics</option>
-              <option value="Visual Arts">Visual Arts</option>
+              {programmeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -183,14 +228,13 @@ export default function EditStudentModal({
             <select
               id="feePaid"
               name="feePaid"
-              value={formData.feePaid ? "paid" : "unpaid"}
+              value={formData.feePaid.toString()}
               onChange={handleChange}
               required
               className="form-select"
             >
-              <option value="">Select payment status</option>
-              <option value="paid">Paid</option>
-              <option value="unpaid">Unpaid</option>
+              <option value="true">Paid</option>
+              <option value="false">Unpaid</option>
             </select>
           </div>
 

@@ -64,7 +64,7 @@ export default function Students() {
 
   const filteredStudents = students.filter((student) =>
     Object.values(student).some((value) =>
-      value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+      value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
 
@@ -82,6 +82,7 @@ export default function Students() {
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   const handleEditClick = (student: Student) => {
+    console.log("Editing student:", student); // Add this line
     setEditingStudent(student);
   };
 
@@ -363,19 +364,17 @@ export default function Students() {
   );
 }
 
-interface PaginationProps {
-  studentsPerPage: number;
-  totalStudents: number;
-  paginate: (pageNumber: number) => void;
-  currentPage: number;
-}
-
 function Pagination({
   studentsPerPage,
   totalStudents,
   paginate,
   currentPage,
-}: PaginationProps) {
+}: {
+  studentsPerPage: number;
+  totalStudents: number;
+  paginate: (pageNumber: number) => void;
+  currentPage: number;
+}) {
   const totalPages = Math.ceil(totalStudents / studentsPerPage);
 
   const renderPaginationButtons = () => {
