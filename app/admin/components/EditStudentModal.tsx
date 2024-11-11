@@ -11,10 +11,10 @@ interface House {
 interface Student {
   fullName: string;
   indexNumber: string;
-  gender: string;
+  gender?: string;
   aggregate: number;
-  residence: string;
-  programme: string;
+  residence?: string;
+  programme?: string;
   feePaid: boolean;
   house?: string;
   houseId?: string;
@@ -104,7 +104,7 @@ export default function EditStudentModal({
           </div>
 
           <div className="form-group">
-            <label htmlFor="indexNumber">Index Number </label>
+            <label htmlFor="indexNumber">Index Number</label>
             <input
               type="text"
               id="indexNumber"
@@ -117,11 +117,11 @@ export default function EditStudentModal({
           </div>
 
           <div className="form-group">
-            <label htmlFor="gender">Gender </label>
+            <label htmlFor="gender">Gender</label>
             <select
               id="gender"
               name="gender"
-              value={formData.gender}
+              value={formData.gender || ""}
               onChange={handleChange}
               required
               className="form-select"
@@ -149,7 +149,7 @@ export default function EditStudentModal({
             <select
               id="residence"
               name="residence"
-              value={formData.residence}
+              value={formData.residence || ""}
               onChange={handleChange}
               className="form-select"
             >
@@ -164,7 +164,7 @@ export default function EditStudentModal({
             <select
               id="programme"
               name="programme"
-              value={formData.programme}
+              value={formData.programme || ""}
               onChange={handleChange}
               className="form-select"
             >
@@ -179,7 +179,7 @@ export default function EditStudentModal({
           </div>
 
           <div className="form-group">
-            <label htmlFor="feePaid">Payment Status </label>
+            <label htmlFor="feePaid">Payment Status</label>
             <select
               id="feePaid"
               name="feePaid"

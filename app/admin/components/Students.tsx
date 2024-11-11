@@ -10,13 +10,14 @@ import BulkUploadModal from "./BulkUploadModal";
 interface Student {
   fullName: string;
   indexNumber: string;
-  gender: string;
+  gender?: string;
   aggregate: number;
-  residence: string;
-  programme: string;
+  residence?: string;
+  programme?: string;
   feePaid: boolean;
-  house?: string;
+  houseAssigned?: string;
   houseName?: string;
+  house?: string;
 }
 
 export default function Students() {
@@ -141,7 +142,7 @@ export default function Students() {
       setStudents((prevStudents) =>
         prevStudents.map((student) =>
           student.indexNumber === editingStudent.indexNumber
-            ? updatedStudentData
+            ? { ...student, ...updatedStudentData }
             : student
         )
       );
@@ -254,10 +255,10 @@ export default function Students() {
                 <tr key={student.indexNumber}>
                   <td>{student.fullName}</td>
                   <td>{student.indexNumber}</td>
-                  <td>{student.gender}</td>
+                  <td>{student.gender || "N/A"}</td>
                   <td>{student.aggregate}</td>
-                  <td>{student.residence}</td>
-                  <td>{student.programme}</td>
+                  <td>{student.residence || "N/A"}</td>
+                  <td>{student.programme || "N/A"}</td>
                   <td>
                     <span
                       className={`status-badge ${
@@ -267,7 +268,12 @@ export default function Students() {
                       {student.feePaid ? "Paid" : "Unpaid"}
                     </span>
                   </td>
-                  <td>{student.houseName || "Not Assigned"}</td>
+                  <td>
+                    {student.houseAssigned ||
+                      student.houseName ||
+                      student.house ||
+                      "Not Assigned"}
+                  </td>
                   <td>
                     <div className="action-buttons">
                       <button

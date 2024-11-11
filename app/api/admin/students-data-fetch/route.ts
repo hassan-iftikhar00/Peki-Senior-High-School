@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
     const candidates = await Candidate.find({})
       .select(
-        "fullName indexNumber gender aggregate residence programme feePaid"
+        "fullName indexNumber gender aggregate residence programme feePaid houseAssigned houseName houseId"
       )
       .lean()
       .exec();
@@ -60,6 +60,9 @@ export async function GET(request: NextRequest) {
       residence: candidate.residence,
       programme: candidate.programme,
       feePaid: candidate.feePaid,
+      houseAssigned: candidate.houseAssigned,
+      houseName: candidate.houseName,
+      houseId: candidate.houseId,
     }));
 
     console.log("Admin students API: Sending transformed candidate data");
