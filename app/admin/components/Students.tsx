@@ -15,6 +15,8 @@ interface Student {
   residence: string;
   programme: string;
   feePaid: boolean;
+  house?: string;
+  houseName?: string;
 }
 
 export default function Students() {
@@ -243,6 +245,7 @@ export default function Students() {
                 <th>Residence</th>
                 <th>Programme</th>
                 <th>Payment Status</th>
+                <th>House</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -264,6 +267,7 @@ export default function Students() {
                       {student.feePaid ? "Paid" : "Unpaid"}
                     </span>
                   </td>
+                  <td>{student.houseName || "Not Assigned"}</td>
                   <td>
                     <div className="action-buttons">
                       <button

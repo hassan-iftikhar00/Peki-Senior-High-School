@@ -2,6 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 
+interface House {
+  _id: string;
+  name: string;
+  gender: "Male" | "Female";
+}
+
 interface Student {
   fullName: string;
   indexNumber: string;
@@ -10,6 +16,9 @@ interface Student {
   residence: string;
   programme: string;
   feePaid: boolean;
+  house?: string;
+  houseId?: string;
+  houseName?: string;
 }
 
 interface EditStudentModalProps {
@@ -24,10 +33,26 @@ export default function EditStudentModal({
   onSave,
 }: EditStudentModalProps) {
   const [formData, setFormData] = useState<Student>(student);
+  const [houses, setHouses] = useState<House[]>([]);
 
   useEffect(() => {
     setFormData(student);
+    fetchHouses();
   }, [student]);
+
+  const fetchHouses = async () => {
+    try {
+      const response = await fetch("/api/admin/houses");
+      if (response.ok) {
+        const data = await response.json();
+        setHouses(data.houses);
+      } else {
+        console.error("Failed to fetch houses");
+      }
+    } catch (error) {
+      console.error("Error fetching houses:", error);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,10 +63,20 @@ export default function EditStudentModal({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "feePaid" ? value === "paid" : value,
-    }));
+    setFormData((prev) => {
+      if (name === "feePaid") {
+        return { ...prev, [name]: value === "paid" };
+      } else if (name === "house") {
+        const selectedHouse = houses.find((h) => h._id === value);
+        return {
+          ...prev,
+          houseId: value,
+          houseName: selectedHouse ? selectedHouse.name : undefined,
+        };
+      } else {
+        return { ...prev, [name]: value };
+      }
+    });
   };
 
   return (
@@ -156,6 +191,24 @@ export default function EditStudentModal({
               <option value="">Select payment status</option>
               <option value="paid">Paid</option>
               <option value="unpaid">Unpaid</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="house">House</label>
+            <select
+              id="house"
+              name="house"
+              value={formData.houseId || ""}
+              onChange={handleChange}
+              className="form-select"
+            >
+              <option value="">Select house</option>
+              {houses.map((house) => (
+                <option key={house._id} value={house._id}>
+                  {house.name}
+                </option>
+              ))}
             </select>
           </div>
 

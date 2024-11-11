@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import Candidate from "@/models/Candidate";
 import { verifyToken } from "@/lib/auth";
+import House from "@/models/House";
 
 export async function PUT(request: NextRequest) {
   try {
@@ -16,9 +17,9 @@ export async function PUT(request: NextRequest) {
       indexNumber,
       feePaid,
       gender,
+      houseId,
       ...otherStudentData
     } = updatedData;
-
     // Check for required fields
     if (!oldIndexNumber || !indexNumber || feePaid === undefined || !gender) {
       return NextResponse.json(
@@ -40,17 +41,49 @@ export async function PUT(request: NextRequest) {
     if (!existingStudent) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
+    if (houseId !== existingStudent.houseId) {
+      if (existingStudent.houseId) {
+        // Decrease occupancy of the old house
+        await House.findByIdAndUpdate(existingStudent.houseId, {
+          $inc: { currentOccupancy: -1 },
+        });
+      }
+      if (houseId) {
+        // Increase occupancy of the new house
+        const newHouse = await House.findByIdAndUpdate(
+          houseId,
+          { $inc: { currentOccupancy: 1 } },
+          { new: true }
+        );
+        if (!newHouse) {
+          return NextResponse.json(
+            { error: "Invalid house ID" },
+            { status: 400 }
+          );
+        }
+        otherStudentData.houseName = newHouse.name;
+      }
+    }
+    const updatedStudent = await Candidate.findOneAndUpdate(
+      { indexNumber: oldIndexNumber },
+      {
+        $set: {
+          indexNumber,
+          feePaid,
+          gender,
+          houseId,
+          ...otherStudentData,
+        },
+      },
+      { new: true }
+    );
 
-    // Update the student data, including the new index number if it has changed
-    existingStudent.indexNumber = indexNumber;
-    existingStudent.feePaid = feePaid;
-    existingStudent.gender = gender;
-
-    // Update other fields
-    Object.assign(existingStudent, otherStudentData);
-
-    // Save the updated student
-    const updatedStudent = await existingStudent.save();
+    if (!updatedStudent) {
+      return NextResponse.json(
+        { error: "Failed to update student" },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(updatedStudent);
   } catch (error) {
