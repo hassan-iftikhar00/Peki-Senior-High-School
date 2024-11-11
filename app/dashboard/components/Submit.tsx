@@ -256,7 +256,9 @@ export default function Submit({
           errorMessage =
             "No available houses. Please contact the administration.";
         }
-        setSubmissionMessage(`Failed to submit application: ${errorMessage}`);
+        setSubmissionMessage(
+          `Failed to submit application. Click Submit again`
+        );
         setSubmissionStatus("FAILED");
         setErrors([errorMessage]);
       }
@@ -311,7 +313,9 @@ export default function Submit({
           errorMessage =
             "No available houses. Please contact the administration.";
         }
-        setSubmissionMessage(`Failed to submit application: ${errorMessage}`);
+        setSubmissionMessage(
+          `Failed to submit application. Click submit again.`
+        );
         setSubmissionStatus("FAILED");
         setErrors([errorMessage]);
       }
