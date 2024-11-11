@@ -257,7 +257,7 @@ export default function Submit({
             "No available houses. Please contact the administration.";
         }
         setSubmissionMessage(
-          `Failed to submit application. Click Submit again`
+          `Failed to submit application. Click submit again`
         );
         setSubmissionStatus("FAILED");
         setErrors([errorMessage]);
