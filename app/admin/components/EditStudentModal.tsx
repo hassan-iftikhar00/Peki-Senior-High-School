@@ -65,9 +65,7 @@ export default function EditStudentModal({
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => {
-      if (name === "feePaid") {
-        return { ...prev, [name]: value === "true" };
-      } else if (name === "house") {
+      if (name === "house") {
         const selectedHouse = houses.find((h) => h._id === value);
         return {
           ...prev,
@@ -225,16 +223,9 @@ export default function EditStudentModal({
 
           <div className="form-group">
             <label htmlFor="feePaid">Payment Status</label>
-            <select
-              id="feePaid"
-              name="feePaid"
-              value={formData.feePaid.toString()}
-              onChange={handleChange}
-              className="form-select"
-            >
-              <option value="true">Paid</option>
-              <option value="false">Unpaid</option>
-            </select>
+            <div className="fee-paid-status">
+              {formData.feePaid ? "Paid" : "Unpaid"}
+            </div>
           </div>
 
           <div className="form-group">
