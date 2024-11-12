@@ -230,7 +230,6 @@ export default function EditStudentModal({
               name="feePaid"
               value={formData.feePaid.toString()}
               onChange={handleChange}
-              required
               className="form-select"
             >
               <option value="true">Paid</option>

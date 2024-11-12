@@ -53,7 +53,7 @@ export default function AddStudentModal({
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "feePaid" ? value === "paid" : value,
+      [name]: value,
     }));
   };
 
@@ -105,8 +105,8 @@ export default function AddStudentModal({
               className="form-select"
             >
               <option value="">Select gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
             </select>
           </div>
 
@@ -132,8 +132,8 @@ export default function AddStudentModal({
               className="form-select"
             >
               <option value="">Select residence</option>
-              <option value="boarding">Boarding</option>
-              <option value="day">Day</option>
+              <option value="Boarding">Boarding</option>
+              <option value="Day">Day</option>
             </select>
           </div>
 
@@ -147,28 +147,12 @@ export default function AddStudentModal({
               className="form-select"
             >
               <option value="">Select programme</option>
-              <option value="General Arts">General Arts</option>
-              <option value="General Science">General Science</option>
-              <option value="Business">Business</option>
-              <option value="Agricultural Science">Agricultural Science</option>
-              <option value="Home Economics">Home Economics</option>
-              <option value="Visual Arts">Visual Arts</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="feePaid">Payment Status </label>
-            <select
-              id="feePaid"
-              name="feePaid"
-              value={formData.feePaid ? "paid" : "unpaid"}
-              onChange={handleChange}
-              required
-              className="form-select"
-            >
-              <option value="">Select payment status</option>
-              <option value="paid">Paid</option>
-              <option value="unpaid">Unpaid</option>
+              <option value="GENERAL ARTS">General Arts</option>
+              <option value="GENERAL SCIENCE">General Science</option>
+              <option value="BUSINESS">Business</option>
+              <option value="AGRICULTURAL SCIENCE">Agricultural Science</option>
+              <option value="HOME ECONOMICS">Home Economics</option>
+              <option value="VISUAL ARTS">Visual Arts</option>
             </select>
           </div>
 
