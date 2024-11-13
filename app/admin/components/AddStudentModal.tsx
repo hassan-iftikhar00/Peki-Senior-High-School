@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+
+interface Programme {
+  _id: string;
+  name: string;
+  color: string;
+}
 
 interface AddStudentModalProps {
   onClose: () => void;
@@ -20,6 +26,25 @@ export default function AddStudentModal({
     programme: "",
     feePaid: false,
   });
+  const [programmes, setProgrammes] = useState<Programme[]>([]);
+
+  useEffect(() => {
+    fetchProgrammes();
+  }, []);
+
+  const fetchProgrammes = async () => {
+    try {
+      const response = await fetch("/api/admin/programmes");
+      if (response.ok) {
+        const data = await response.json();
+        setProgrammes(data);
+      } else {
+        console.error("Failed to fetch programmes");
+      }
+    } catch (error) {
+      console.error("Error fetching programmes:", error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,12 +172,11 @@ export default function AddStudentModal({
               className="form-select"
             >
               <option value="">Select programme</option>
-              <option value="GENERAL ARTS">General Arts</option>
-              <option value="GENERAL SCIENCE">General Science</option>
-              <option value="BUSINESS">Business</option>
-              <option value="AGRICULTURAL SCIENCE">Agricultural Science</option>
-              <option value="HOME ECONOMICS">Home Economics</option>
-              <option value="VISUAL ARTS">Visual Arts</option>
+              {programmes.map((programme) => (
+                <option key={programme._id} value={programme.name}>
+                  {programme.name}
+                </option>
+              ))}
             </select>
           </div>
 

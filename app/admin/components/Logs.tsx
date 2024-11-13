@@ -1,137 +1,127 @@
-import React, { useState } from "react";
+"use client";
 
-const initialAdminLogs = [
-  {
-    id: 1,
-    name: "John Doe",
-    timeIn: "2024-10-26 09:00:00",
-    activityDetails: "Logged in",
-    timeOut: "2024-10-26 17:00:00",
-  },
-  {
-    id: 2,
-    name: "Jane Smith",
-    timeIn: "2024-10-26 08:30:00",
-    activityDetails: "Updated student records",
-    timeOut: "2024-10-26 16:30:00",
-  },
-  {
-    id: 3,
-    name: "Bob Johnson",
-    timeIn: "2024-10-26 09:15:00",
-    activityDetails: "Generated admission documents",
-    timeOut: "2024-10-26 17:15:00",
-  },
-];
+import React, { useState, useEffect } from "react";
+import { format } from "date-fns";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const initialApplicantLogs = [
-  {
-    id: 1,
-    name: "Alice Brown",
-    timeIn: "2024-10-26 10:00:00",
-    activityDetails: "Submitted application",
-    timeOut: "2024-10-26 10:30:00",
-  },
-  {
-    id: 2,
-    name: "Charlie Davis",
-    timeIn: "2024-10-26 11:15:00",
-    activityDetails: "Uploaded documents",
-    timeOut: "2024-10-26 11:45:00",
-  },
-  {
-    id: 3,
-    name: "Eva Green",
-    timeIn: "2024-10-26 14:00:00",
-    activityDetails: "Completed online form",
-    timeOut: "2024-10-26 14:30:00",
-  },
-];
+interface Log {
+  _id: string;
+  name: string;
+  timeIn: string;
+  activityDetails: string;
+  timeOut: string;
+}
+
+interface PaginatedLogs {
+  logs: Log[];
+  totalPages: number;
+  currentPage: number;
+}
 
 export default function Logs() {
-  const [adminLogs] = useState(initialAdminLogs);
-  const [applicantLogs] = useState(initialApplicantLogs);
+  const [adminLogs, setAdminLogs] = useState<PaginatedLogs>({
+    logs: [],
+    totalPages: 0,
+    currentPage: 1,
+  });
+  const [candidateLogs, setCandidateLogs] = useState<PaginatedLogs>({
+    logs: [],
+    totalPages: 0,
+    currentPage: 1,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchLogs("admin", 1);
+    fetchLogs("candidate", 1);
+  }, []);
+
+  const fetchLogs = async (type: "admin" | "candidate", page: number) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/admin/logs?type=${type}&page=${page}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch logs");
+      }
+      const data: PaginatedLogs = await response.json();
+      if (type === "admin") {
+        setAdminLogs(data);
+      } else {
+        setCandidateLogs(data);
+      }
+    } catch (error) {
+      setError("An error occurred while fetching logs. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const renderTable = (
+    paginatedLogs: PaginatedLogs,
+    title: string,
+    type: "admin" | "candidate"
+  ) => (
+    <div className="log-section">
+      <h2>{title}</h2>
+      <table className="logs-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Time In</th>
+            <th>Activity</th>
+            <th>Time Out</th>
+          </tr>
+        </thead>
+        <tbody>
+          {paginatedLogs.logs.map((log) => (
+            <tr key={log._id}>
+              <td>{log.name}</td>
+              <td>{format(new Date(log.timeIn), "yyyy-MM-dd HH:mm:ss")}</td>
+              <td>
+                <span className="activity-tag">{log.activityDetails}</span>
+              </td>
+              <td>{format(new Date(log.timeOut), "yyyy-MM-dd HH:mm:ss")}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="pagination">
+        <button
+          onClick={() => fetchLogs(type, paginatedLogs.currentPage - 1)}
+          disabled={paginatedLogs.currentPage === 1}
+          className="not-admin logs-button"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <span>
+          Page {paginatedLogs.currentPage} of {paginatedLogs.totalPages}
+        </span>
+        <button
+          className="not-admin logs-button"
+          onClick={() => fetchLogs(type, paginatedLogs.currentPage + 1)}
+          disabled={paginatedLogs.currentPage === paginatedLogs.totalPages}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+
+  if (isLoading) {
+    return <div className="loading">Loading logs...</div>;
+  }
+
+  if (error) {
+    return <div className="error">{error}</div>;
+  }
 
   return (
-    <div className="inner-content">
-      {" "}
-      <div className="logs-page">
-        <div className="logs-section">
-          <div className="logs-card">
-            <div className="logs-header">
-              <h2>Admin Logs</h2>
-              <p className="subtitle">View system logs for admin activities.</p>
-            </div>
-            <table className="logs-table">
-              <thead>
-                <tr>
-                  <th>S/N</th>
-                  <th>Name</th>
-                  <th>Time In</th>
-                  <th>Activity Details</th>
-                  <th>Time Out</th>
-                </tr>
-              </thead>
-              <tbody>
-                {adminLogs.map((log, index) => (
-                  <tr key={log.id}>
-                    <td>{index + 1}</td>
-                    <td>{log.name}</td>
-                    <td>{log.timeIn}</td>
-                    <td>
-                      <span className="activity-text">
-                        {log.activityDetails}
-                      </span>
-                    </td>
-                    <td>{log.timeOut}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="table-footer">
-              <p>Total admin logs: {adminLogs.length}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="logs-section">
-          <div className="logs-card">
-            <div className="logs-header">
-              <h2>Applicant Logs</h2>
-              <p className="subtitle">View logs for applicant activities.</p>
-            </div>
-            <table className="logs-table">
-              <thead>
-                <tr>
-                  <th>S/N</th>
-                  <th>Name</th>
-                  <th>Time In</th>
-                  <th>Activity Details</th>
-                  <th>Time Out</th>
-                </tr>
-              </thead>
-              <tbody>
-                {applicantLogs.map((log, index) => (
-                  <tr key={log.id}>
-                    <td>{index + 1}</td>
-                    <td>{log.name}</td>
-                    <td>{log.timeIn}</td>
-                    <td>
-                      <span className="activity-text">
-                        {log.activityDetails}
-                      </span>
-                    </td>
-                    <td>{log.timeOut}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="table-footer">
-              <p>Total applicant logs: {applicantLogs.length}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="logs-container">
+      <h1>Activity Logs</h1>
+      {renderTable(adminLogs, "Admin Logs", "admin")}
+      {renderTable(candidateLogs, "Candidate Logs", "candidate")}
     </div>
   );
 }

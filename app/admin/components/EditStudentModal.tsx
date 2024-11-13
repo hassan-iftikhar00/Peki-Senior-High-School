@@ -8,6 +8,12 @@ interface House {
   gender: "Male" | "Female";
 }
 
+interface Programme {
+  _id: string;
+  name: string;
+  color: string;
+}
+
 interface Student {
   fullName: string;
   indexNumber: string;
@@ -34,11 +40,13 @@ export default function EditStudentModal({
 }: EditStudentModalProps) {
   const [formData, setFormData] = useState<Student>(student);
   const [houses, setHouses] = useState<House[]>([]);
+  const [programmes, setProgrammes] = useState<Programme[]>([]);
 
   useEffect(() => {
     console.log("Student data in modal:", student);
     setFormData(student);
     fetchHouses();
+    fetchProgrammes();
   }, [student]);
 
   const fetchHouses = async () => {
@@ -52,6 +60,20 @@ export default function EditStudentModal({
       }
     } catch (error) {
       console.error("Error fetching houses:", error);
+    }
+  };
+
+  const fetchProgrammes = async () => {
+    try {
+      const response = await fetch("/api/admin/programmes");
+      if (response.ok) {
+        const data = await response.json();
+        setProgrammes(data);
+      } else {
+        console.error("Failed to fetch programmes");
+      }
+    } catch (error) {
+      console.error("Error fetching programmes:", error);
     }
   };
 
@@ -83,7 +105,7 @@ export default function EditStudentModal({
           [name]: value.charAt(0).toUpperCase() + value.slice(1).toLowerCase(),
         };
       } else if (name === "programme") {
-        return { ...prev, [name]: value.toUpperCase() };
+        return { ...prev, [name]: value };
       } else {
         return { ...prev, [name]: value };
       }
@@ -94,14 +116,6 @@ export default function EditStudentModal({
 
   const genderOptions = ["Male", "Female"];
   const residenceOptions = ["Boarding", "Day"];
-  const programmeOptions = [
-    "VISUAL ARTS",
-    "GENERAL ARTS",
-    "GENERAL SCIENCE",
-    "BUSINESS",
-    "AGRICULTURAL SCIENCE",
-    "HOME ECONOMICS",
-  ];
 
   const getSelectedValue = (options: string[], value: string | undefined) => {
     if (!value) return "";
@@ -208,14 +222,14 @@ export default function EditStudentModal({
             <select
               id="programme"
               name="programme"
-              value={getSelectedValue(programmeOptions, formData.programme)}
+              value={formData.programme}
               onChange={handleChange}
               className="form-select"
             >
               <option value="">Select programme</option>
-              {programmeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
+              {programmes.map((programme) => (
+                <option key={programme._id} value={programme.name}>
+                  {programme.name}
                 </option>
               ))}
             </select>

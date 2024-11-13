@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import sharp from "sharp";
-
-// Define template URLs - replace with your Cloudinary URLs
-const PDF_TEMPLATES = {
-  admissionLetter:
-    "https://res.cloudinary.com/dah9roj2d/image/upload/v1730247831/zywfhieaeqvwnkk2mnsp.pdf",
-  personalRecord:
-    "https://res.cloudinary.com/dah9roj2d/image/upload/v1730247831/yp2rtvahwinj1mevvdui.pdf",
-};
+import { connectToDatabase } from "@/lib/db";
+import DocumentModel from "@/models/Documents";
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,7 +27,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const pdfBytes = await generatePDF(data, documentType);
+    // Connect to the database
+    await connectToDatabase();
+    console.log("Connected to MongoDB");
+
+    // Fetch the template URL from the database
+    const templateDocument = await DocumentModel.findOne({
+      type:
+        documentType === "admissionLetter"
+          ? "admissionLetterTemplate"
+          : "personalRecordTemplate",
+    });
+
+    if (!templateDocument) {
+      console.error(`Template not found for type: ${documentType}`);
+      return NextResponse.json(
+        { error: `Template not found for type: ${documentType}` },
+        { status: 404 }
+      );
+    }
+
+    console.log(`Template found: ${JSON.stringify(templateDocument)}`);
+
+    const pdfBytes = await generatePDF(
+      data,
+      documentType,
+      templateDocument.url
+    );
 
     return new NextResponse(pdfBytes, {
       headers: {
@@ -46,7 +66,10 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("Error generating PDF:", error);
     return NextResponse.json(
-      { error: "Failed to generate PDF" },
+      {
+        error: "Failed to generate PDF",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
@@ -151,9 +174,9 @@ async function fetchImageAsBytes(imageUrl: string): Promise<Uint8Array> {
 
 async function generatePDF(
   data: any,
-  type: "admissionLetter" | "personalRecord"
+  type: "admissionLetter" | "personalRecord",
+  templateUrl: string
 ) {
-  const templateUrl = PDF_TEMPLATES[type];
   const pdfDoc = await loadPDFTemplate(templateUrl);
   const page = pdfDoc.getPages()[0];
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
@@ -183,8 +206,6 @@ async function generatePDF(
   }
 
   if (type === "admissionLetter") {
-    // Embed passport photo if available
-
     // Draw text fields as before
     const fields = {
       [data.fullName]: coordinates.fullName,
@@ -237,7 +258,7 @@ async function generatePDF(
       [data.programme]: coordinates.programme,
       [data.nhisNo]: coordinates.nhisNo,
       [data.enrollmentCode || "N/A"]: coordinates.enrollmentCode,
-      [data.dateOfBirth || "N/A"]: coordinates.dateOfBirth, // Fixed: using correct coordinates
+      [data.dateOfBirth || "N/A"]: coordinates.dateOfBirth,
       [data.phoneNumber]: coordinates.phoneNumber,
 
       // Guardian Info
@@ -268,14 +289,18 @@ async function generatePDF(
       }
     });
     Object.entries(uploadFields).forEach(([field, value]) => {
-      const pos = coordinates[field];
-      console.log(`Drawing upload status: "${value}" for ${field} at:`, pos);
-      page.drawText(value, {
-        x: pos.x,
-        y: pos.y,
-        size: pos.size || 12,
-        font: font,
-      });
+      const pos = coordinates[field as keyof typeof coordinates];
+      if (pos) {
+        console.log(`Drawing upload status: "${value}" for ${field} at:`, pos);
+        page.drawText(value, {
+          x: pos.x,
+          y: pos.y,
+          size: pos.size || 12,
+          font: font,
+        });
+      } else {
+        console.warn(`Coordinates not found for field: ${field}`);
+      }
     });
   }
 

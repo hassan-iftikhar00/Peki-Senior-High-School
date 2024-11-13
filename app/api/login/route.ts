@@ -3,6 +3,7 @@ import { sign } from "jsonwebtoken";
 import { compare } from "bcrypt";
 import { connectToDatabase } from "@/lib/db";
 import Candidate, { ICandidateDocument } from "@/models/Candidate";
+import CandidateLog from "@/models/CandidateLog";
 import getConfig from "next/config";
 
 const { serverRuntimeConfig } = getConfig();
@@ -58,6 +59,16 @@ export async function POST(request: NextRequest) {
     const token = sign({ indexNumber: candidate.indexNumber }, JWT_SECRET, {
       expiresIn: "1d",
     });
+
+    // Create a log entry for the successful login
+    await CandidateLog.create({
+      name: candidate.fullName,
+      timeIn: new Date(),
+      activityDetails: "Candidate logged in",
+      timeOut: new Date(),
+    });
+
+    console.log("Candidate login log created");
 
     const response = NextResponse.json({
       success: true,

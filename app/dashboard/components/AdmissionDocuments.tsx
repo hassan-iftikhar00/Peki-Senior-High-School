@@ -73,21 +73,57 @@ export default function AdmissionDocuments({
     prospectus: false,
   });
   const [loadingMessage, setLoadingMessage] = useState("");
+  const [prospectusUrl, setProspectusUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     console.log("AdmissionDocuments received data:", candidateData);
-  }, [candidateData]);
+    fetchProspectusUrl();
+  }, []);
+
+  const fetchProspectusUrl = async () => {
+    try {
+      setError(null);
+      const response = await fetch("/api/admin/documents?type=prospectus");
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch prospectus URL: ${response.statusText}`
+        );
+      }
+      const data = await response.json();
+      console.log("Received data from API:", data); // Log the entire response
+      if (data && data.url) {
+        setProspectusUrl(data.url);
+        console.log("Set prospectus URL to:", data.url); // Log the URL being set
+      } else {
+        throw new Error("Prospectus URL not found in response");
+      }
+    } catch (error) {
+      console.error("Error fetching prospectus URL:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch prospectus URL"
+      );
+      setProspectusUrl(null);
+    }
+  };
 
   const handleProspectusDownload = async () => {
+    if (!prospectusUrl) {
+      setError("Prospectus URL not available. Please try refreshing the page.");
+      return;
+    }
+
     setIsGenerating((prev) => ({ ...prev, prospectus: true }));
     setLoadingMessage(`Downloading Prospectus`);
     try {
-      // Replace with your actual Cloudinary PDF URL
-      const prospectusUrl =
-        "https://res.cloudinary.com/dah9roj2d/image/upload/v1730573617/rcmilq4ptjwk1tvcro3p.pdf";
+      console.log("Attempting to download prospectus from:", prospectusUrl);
 
       const response = await fetch(prospectusUrl);
-      if (!response.ok) throw new Error("Failed to fetch prospectus");
+      if (!response.ok) {
+        throw new Error(`Failed to fetch prospectus: ${response.statusText}`);
+      }
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -102,7 +138,9 @@ export default function AdmissionDocuments({
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error downloading prospectus:", error);
-      alert("Failed to download prospectus. Please try again.");
+      setError(
+        error instanceof Error ? error.message : "Failed to download prospectus"
+      );
     } finally {
       setLoadingMessage("");
       setIsGenerating((prev) => ({ ...prev, prospectus: false }));
@@ -161,6 +199,18 @@ export default function AdmissionDocuments({
       <h2>Admission Documents</h2>
       <p className="subtitle headings">Download your admission documents!</p>
 
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded text-red-700">
+          <p>{error}</p>
+          <button
+            onClick={fetchProspectusUrl}
+            className="mt-2 text-sm text-red-600 underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
       {candidateData.applicationNumber ? (
         <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded text-download">
           <p className="text-download-status">
@@ -218,7 +268,7 @@ export default function AdmissionDocuments({
         <button
           className="action-button secondary w-full flex items-center justify-center gap-2 p-3 rounded bg-green-600 hover:bg-green-700 text-white"
           onClick={handleProspectusDownload}
-          disabled={isGenerating.prospectus}
+          disabled={isGenerating.prospectus || !prospectusUrl}
         >
           {isGenerating.prospectus ? (
             <>
