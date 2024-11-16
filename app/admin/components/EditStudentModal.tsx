@@ -139,8 +139,11 @@ export default function EditStudentModal({
   };
 
   const filteredHouses = houses.filter(
-    (house) => house.gender === formData.gender
+    (house) => house.gender.toLowerCase() === formData.gender?.toLowerCase()
   );
+
+  const showHouseSelection =
+    formData.houseAssigned || formData.houseName || formData.house;
 
   return (
     <div className="delete-confirmation-modal">
@@ -253,23 +256,25 @@ export default function EditStudentModal({
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="house">House</label>
-            <select
-              id="house"
-              name="house"
-              value={formData.houseId || ""}
-              onChange={handleChange}
-              className="form-select"
-            >
-              <option value="">Select house</option>
-              {filteredHouses.map((house) => (
-                <option key={house._id} value={house._id}>
-                  {house.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {showHouseSelection && (
+            <div className="form-group">
+              <label htmlFor="house">House</label>
+              <select
+                id="house"
+                name="house"
+                value={formData.houseId || ""}
+                onChange={handleChange}
+                className="form-select"
+              >
+                <option value="">Select house</option>
+                {filteredHouses.map((house) => (
+                  <option key={house._id} value={house._id}>
+                    {house.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="form-footer">
             <button type="submit" className="add-student-button not-admin">

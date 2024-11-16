@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
 
     let query = {};
     if (gender !== "All") {
-      query = { gender };
+      query = { gender: new RegExp(`^${gender}$`, "i") };
     }
 
     let sortOptions: { [key: string]: SortOrder } = {};
