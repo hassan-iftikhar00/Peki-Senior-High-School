@@ -1450,6 +1450,89 @@ button:active {
   background-color: #5a6268;
 }
 
+/* Column Button Dropdown Styles */
+.columns-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.columns-button {
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.columns-button:hover {
+  background-color: #e0e0e0;
+}
+
+.columns-dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #fff;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+  border-radius: 4px;
+  padding: 8px 0;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.columns-dropdown.active .columns-dropdown-content {
+  display: block;
+}
+
+.column-checkbox {
+  display: block;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #333;
+  transition: background-color 0.2s ease;
+}
+
+.column-checkbox:hover {
+  background-color: #f5f5f5;
+}
+
+.column-checkbox input[type="checkbox"] {
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+/* Accessibility */
+.columns-button:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+.column-checkbox input[type="checkbox"]:focus + span {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .columns-button {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .columns-dropdown-content {
+    min-width: 140px;
+  }
+
+  .column-checkbox {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
+
 /* add student modal */
 .add-student-content {
   background-color: white;

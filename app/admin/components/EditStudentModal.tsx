@@ -25,6 +25,7 @@ interface Student {
   house?: string;
   houseId?: string;
   houseName?: string;
+  houseAssigned?: string;
 }
 
 interface EditStudentModalProps {
@@ -93,6 +94,7 @@ export default function EditStudentModal({
           ...prev,
           houseId: value,
           houseName: selectedHouse ? selectedHouse.name : undefined,
+          houseAssigned: selectedHouse ? selectedHouse.name : undefined,
         };
       } else if (name === "gender") {
         return {
@@ -128,7 +130,7 @@ export default function EditStudentModal({
       options,
       `Result: ${matchedOption}`
     );
-    return matchedOption || value; // Return the original value if no match is found
+    return matchedOption || value;
   };
 
   return (

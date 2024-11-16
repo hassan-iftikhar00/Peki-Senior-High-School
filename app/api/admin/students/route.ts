@@ -20,7 +20,7 @@ export async function PUT(request: NextRequest) {
       houseId,
       ...otherStudentData
     } = updatedData;
-    // Check for required fields
+
     if (!oldIndexNumber || !indexNumber || feePaid === undefined || !gender) {
       return NextResponse.json(
         {
@@ -33,7 +33,6 @@ export async function PUT(request: NextRequest) {
 
     await connectToDatabase();
 
-    // First, find the student by the old index number
     const existingStudent = await Candidate.findOne({
       indexNumber: oldIndexNumber,
     });
@@ -41,15 +40,15 @@ export async function PUT(request: NextRequest) {
     if (!existingStudent) {
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
+
+    let newHouseName;
     if (houseId !== existingStudent.houseId) {
       if (existingStudent.houseId) {
-        // Decrease occupancy of the old house
         await House.findByIdAndUpdate(existingStudent.houseId, {
           $inc: { currentOccupancy: -1 },
         });
       }
       if (houseId) {
-        // Increase occupancy of the new house
         const newHouse = await House.findByIdAndUpdate(
           houseId,
           { $inc: { currentOccupancy: 1 } },
@@ -61,9 +60,10 @@ export async function PUT(request: NextRequest) {
             { status: 400 }
           );
         }
-        otherStudentData.houseName = newHouse.name;
+        newHouseName = newHouse.name;
       }
     }
+
     const updatedStudent = await Candidate.findOneAndUpdate(
       { indexNumber: oldIndexNumber },
       {
@@ -72,6 +72,8 @@ export async function PUT(request: NextRequest) {
           feePaid,
           gender,
           houseId,
+          houseName: newHouseName || existingStudent.houseName,
+          houseAssigned: newHouseName || existingStudent.houseName,
           ...otherStudentData,
         },
       },
@@ -141,7 +143,6 @@ export async function POST(request: NextRequest) {
     const studentData = await request.json();
     const { indexNumber, gender, feePaid, ...otherStudentData } = studentData;
 
-    // Check for required fields
     if (!indexNumber || !gender || feePaid === undefined) {
       return NextResponse.json(
         {
@@ -153,7 +154,6 @@ export async function POST(request: NextRequest) {
 
     await connectToDatabase();
 
-    // Check if a student with the same index number already exists
     const existingStudent = await Candidate.findOne({ indexNumber });
     if (existingStudent) {
       return NextResponse.json(
@@ -162,7 +162,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create and save the new student
     const newStudent = new Candidate({
       indexNumber,
       gender,

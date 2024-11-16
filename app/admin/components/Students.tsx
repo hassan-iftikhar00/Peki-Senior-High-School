@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import EditStudentModal from "./EditStudentModal";
@@ -20,6 +20,12 @@ interface Student {
   house?: string;
 }
 
+interface Column {
+  key: keyof Student;
+  label: string;
+  visible: boolean;
+}
+
 export default function Students() {
   const [students, setStudents] = useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -31,7 +37,20 @@ export default function Students() {
   const [deletingStudent, setDeletingStudent] = useState<Student | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+  const [showColumnsDropdown, setShowColumnsDropdown] = useState(false);
+  const [columns, setColumns] = useState<Column[]>([
+    { key: "fullName", label: "Full Name", visible: true },
+    { key: "indexNumber", label: "Index Number", visible: true },
+    { key: "gender", label: "Gender", visible: true },
+    { key: "aggregate", label: "Aggregate", visible: true },
+    { key: "residence", label: "Residence", visible: true },
+    { key: "programme", label: "Programme", visible: true },
+    { key: "feePaid", label: "Payment Status", visible: true },
+    { key: "houseAssigned", label: "House", visible: true },
+  ]);
   const router = useRouter();
+
+  const columnsDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -62,6 +81,22 @@ export default function Students() {
     fetchStudents();
   }, [router]);
 
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        columnsDropdownRef.current &&
+        !columnsDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowColumnsDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const filteredStudents = students.filter((student) =>
     Object.values(student).some((value) =>
       value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
@@ -82,7 +117,7 @@ export default function Students() {
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
   const handleEditClick = (student: Student) => {
-    console.log("Editing student:", student); // Add this line
+    console.log("Editing student:", student);
     setEditingStudent(student);
   };
 
@@ -143,11 +178,28 @@ export default function Students() {
       setStudents((prevStudents) =>
         prevStudents.map((student) =>
           student.indexNumber === editingStudent.indexNumber
-            ? { ...student, ...updatedStudentData }
+            ? {
+                ...student,
+                ...updatedStudentData,
+                houseAssigned:
+                  updatedStudentData.houseName || updatedStudentData.house,
+              }
             : student
         )
       );
       setEditingStudent(null);
+
+      // Fetch updated student data
+      const studentsResponse = await fetch("/api/admin/students-data-fetch", {
+        credentials: "include",
+      });
+
+      if (studentsResponse.ok) {
+        const updatedStudents = await studentsResponse.json();
+        setStudents(updatedStudents);
+      } else {
+        console.error("Failed to fetch updated student data");
+      }
     } catch (error) {
       console.error("Error updating student:", error);
       // Handle error (e.g., show error message to user)
@@ -191,6 +243,14 @@ export default function Students() {
     setDeletingStudent(null);
   };
 
+  const toggleColumnVisibility = (key: keyof Student) => {
+    setColumns(
+      columns.map((col) =>
+        col.key === key ? { ...col, visible: !col.visible } : col
+      )
+    );
+  };
+
   if (isLoading) {
     return <div>Loading students...</div>;
   }
@@ -200,7 +260,7 @@ export default function Students() {
   }
 
   return (
-    <div className="inner-content ">
+    <div className="inner-content">
       <div className="students-page">
         <div className="students-header">
           <h2>Students</h2>
@@ -209,7 +269,33 @@ export default function Students() {
 
         <div className="students-toolbar">
           <div className="toolbar-left">
-            <button className="columns-button not-admin">Columns</button>
+            <div
+              className={`columns-dropdown ${
+                showColumnsDropdown ? "active" : ""
+              }`}
+              ref={columnsDropdownRef}
+            >
+              <button
+                className="columns-button not-admin"
+                onClick={() => setShowColumnsDropdown(!showColumnsDropdown)}
+              >
+                Columns
+              </button>
+              {showColumnsDropdown && (
+                <div className="columns-dropdown-content">
+                  {columns.map((column) => (
+                    <label key={column.key} className="column-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={column.visible}
+                        onChange={() => toggleColumnVisibility(column.key)}
+                      />
+                      <span>{column.label}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="search-container">
               <input
                 type="text"
@@ -240,41 +326,38 @@ export default function Students() {
           <table className="students-table">
             <thead>
               <tr>
-                <th>Full Name</th>
-                <th>Index Number</th>
-                <th>Gender</th>
-                <th>Aggregate</th>
-                <th>Residence</th>
-                <th>Programme</th>
-                <th>Payment Status</th>
-                <th>House</th>
+                {columns
+                  .filter((col) => col.visible)
+                  .map((column) => (
+                    <th key={column.key}>{column.label}</th>
+                  ))}
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {currentStudents.map((student) => (
                 <tr key={student.indexNumber}>
-                  <td>{student.fullName}</td>
-                  <td>{student.indexNumber}</td>
-                  <td>{student.gender || "N/A"}</td>
-                  <td>{student.aggregate}</td>
-                  <td>{student.residence || "N/A"}</td>
-                  <td>{student.programme || "N/A"}</td>
-                  <td>
-                    <span
-                      className={`status-badge ${
-                        student.feePaid ? "status-paid" : "status-unpaid"
-                      }`}
-                    >
-                      {student.feePaid ? "Paid" : "Unpaid"}
-                    </span>
-                  </td>
-                  <td>
-                    {student.houseAssigned ||
-                      student.houseName ||
-                      student.house ||
-                      "Not Assigned"}
-                  </td>
+                  {columns
+                    .filter((col) => col.visible)
+                    .map((column) => (
+                      <td key={column.key}>
+                        {column.key === "feePaid" ? (
+                          <span
+                            className={`status-badge ${
+                              student.feePaid ? "status-paid" : "status-unpaid"
+                            }`}
+                          >
+                            {student.feePaid ? "Paid" : "Unpaid"}
+                          </span>
+                        ) : column.key === "houseAssigned" ? (
+                          student.houseAssigned ||
+                          student.houseName ||
+                          "Not Assigned"
+                        ) : (
+                          student[column.key] || "N/A"
+                        )}
+                      </td>
+                    ))}
                   <td>
                     <div className="action-buttons">
                       <button

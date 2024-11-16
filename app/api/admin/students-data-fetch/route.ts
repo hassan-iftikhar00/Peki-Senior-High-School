@@ -60,7 +60,11 @@ export async function GET(request: NextRequest) {
       residence: candidate.residence,
       programme: candidate.programme,
       feePaid: candidate.feePaid,
-      houseAssigned: candidate.houseAssigned,
+      houseAssigned:
+        candidate.houseAssigned ||
+        candidate.houseName ||
+        candidate.house ||
+        "Not Assigned",
       houseName: candidate.houseName,
       houseId: candidate.houseId,
     }));
