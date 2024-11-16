@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useSchoolSettings } from "@/app/contexts/SchoolSettingsContext";
-import { Settings } from "lucide-react";
 
 export default function VerifyIndexPage({
   onVerify,
@@ -36,7 +35,7 @@ export default function VerifyIndexPage({
       <div className="hint">
         <span className="red-text">Add the year you completed JHS</span>
         <br />
-        E.g. xxxxxxxxxxx24
+        E.g. {settings.indexNumberHint}
       </div>
       <button onClick={() => onVerify(indexNumber)}>Verify Now</button>
       <footer>Packets Out LLC (Smart Systems)</footer>

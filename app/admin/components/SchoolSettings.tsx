@@ -8,6 +8,9 @@ export default function SchoolSettings() {
   const { settings, updateSettings } = useSchoolSettings();
   const [schoolName, setSchoolName] = useState(settings.name);
   const [schoolLogo, setSchoolLogo] = useState(settings.logo);
+  const [indexNumberHint, setIndexNumberHint] = useState(
+    settings.indexNumberHint
+  );
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -40,7 +43,10 @@ export default function SchoolSettings() {
     setIsLoading(true);
     setError(null);
     try {
-      await updateSettings({ name: schoolName }, logoFile || undefined);
+      await updateSettings(
+        { name: schoolName, indexNumberHint },
+        logoFile || undefined
+      );
       setIsSaved(true);
     } catch (err) {
       setError("Failed to update settings. Please try again.");
@@ -92,6 +98,18 @@ export default function SchoolSettings() {
                   />
                 </div>
               </div>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="indexNumberHint">Index Number Hint</label>
+              <input
+                type="text"
+                id="indexNumberHint"
+                value={indexNumberHint}
+                onChange={(e) => setIndexNumberHint(e.target.value)}
+                className="settings-input"
+                placeholder="E.g. xxxxxxxxxxx24"
+              />
             </div>
 
             {error && <div className="error-message">{error}</div>}

@@ -7,6 +7,7 @@ import LoadingOverlay from "@/components/LoadingOverlay";
 import AddHousePopup from "./AddHousePopup";
 import EditHousePopup from "./EditHousePopup";
 import DeleteConfirmationPopup from "./DeleteConfirmationPopup";
+import HouseStudentsModal from "./HouseStudentsModal";
 
 interface House {
   _id: string;
@@ -14,6 +15,11 @@ interface House {
   gender: "Male" | "Female";
   capacity: number;
   currentOccupancy: number;
+}
+
+interface Student {
+  fullName: string;
+  indexNumber: string;
 }
 
 export default function Houses() {
@@ -33,6 +39,12 @@ export default function Houses() {
   const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] =
     useState(false);
   const [selectedHouse, setSelectedHouse] = useState<House | null>(null);
+  const [selectedHouseName, setSelectedHouseName] = useState<string>("");
+  const [isHouseStudentsModalOpen, setIsHouseStudentsModalOpen] =
+    useState(false);
+  const [selectedHouseStudents, setSelectedHouseStudents] = useState<Student[]>(
+    []
+  );
   const router = useRouter();
 
   useEffect(() => {
@@ -62,6 +74,27 @@ export default function Houses() {
       console.error("Error fetching houses:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchHouseStudents = async (houseName: string) => {
+    try {
+      const response = await fetch(
+        `/api/admin/house-students?houseName=${encodeURIComponent(houseName)}`,
+        {
+          credentials: "include",
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch house students");
+      }
+      const data = await response.json();
+      setSelectedHouseStudents(data.students);
+      setSelectedHouseName(houseName);
+      setIsHouseStudentsModalOpen(true);
+    } catch (err) {
+      console.error("Error fetching house students:", err);
+      alert("Failed to fetch house students. Please try again.");
     }
   };
 
@@ -169,7 +202,11 @@ export default function Houses() {
       <div className="houses-page">
         <div className="houses-grid">
           {houses.map((house) => (
-            <div key={house._id} className="house-stat-card">
+            <div
+              key={house._id}
+              className="house-stat-card cursor-pointer"
+              onClick={() => fetchHouseStudents(house.name)}
+            >
               <div className="house-stat-header">
                 <span>{house.name}</span>
                 <span className="house-icon">🏠</span>
@@ -325,6 +362,12 @@ export default function Houses() {
         onClose={() => setIsDeleteConfirmationOpen(false)}
         onConfirm={handleDeleteHouse}
         itemName={selectedHouse?.name || ""}
+      />
+      <HouseStudentsModal
+        isOpen={isHouseStudentsModalOpen}
+        onClose={() => setIsHouseStudentsModalOpen(false)}
+        houseName={selectedHouseName}
+        students={selectedHouseStudents}
       />
     </div>
   );

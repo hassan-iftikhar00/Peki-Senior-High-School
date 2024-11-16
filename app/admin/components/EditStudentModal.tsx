@@ -97,9 +97,14 @@ export default function EditStudentModal({
           houseAssigned: selectedHouse ? selectedHouse.name : undefined,
         };
       } else if (name === "gender") {
+        const newGender =
+          value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
         return {
           ...prev,
-          [name]: value.charAt(0).toUpperCase() + value.slice(1).toLowerCase(),
+          [name]: newGender,
+          houseId: undefined,
+          houseName: undefined,
+          houseAssigned: undefined,
         };
       } else if (name === "residence") {
         return {
@@ -132,6 +137,10 @@ export default function EditStudentModal({
     );
     return matchedOption || value;
   };
+
+  const filteredHouses = houses.filter(
+    (house) => house.gender === formData.gender
+  );
 
   return (
     <div className="delete-confirmation-modal">
@@ -254,7 +263,7 @@ export default function EditStudentModal({
               className="form-select"
             >
               <option value="">Select house</option>
-              {houses.map((house) => (
+              {filteredHouses.map((house) => (
                 <option key={house._id} value={house._id}>
                   {house.name}
                 </option>
