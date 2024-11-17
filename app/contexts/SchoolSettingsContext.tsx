@@ -15,6 +15,7 @@ interface SchoolSettings {
   voucherPrice: number;
   voucherMessage: string;
   indexNumberHint: string;
+  isClassSelectionEnabled: boolean;
 }
 
 interface SchoolSettingsContextType {
@@ -53,6 +54,7 @@ export const SchoolSettingsProvider: React.FC<SchoolSettingsProviderProps> = ({
     voucherMessage:
       "Thank you for purchasing an admission voucher. Your application process can now begin.",
     indexNumberHint: "xxxxxxxxxxx24",
+    isClassSelectionEnabled: false,
   });
 
   useEffect(() => {

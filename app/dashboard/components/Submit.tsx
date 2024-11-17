@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { UploadStatus } from "./Uploads";
 import { Loader2 } from "lucide-react";
 import LoadingOverlay from "@/components/LoadingOverlay";
+import AcademicInfo from "./AcademicInfo";
 
 interface ApplicantData {
   fullName: string;
@@ -166,6 +167,15 @@ export default function Submit({
       newErrors.push("Previous School is required");
     if (!additionalData.beceYear) newErrors.push("BECE Year is required");
 
+    // Check AcademicData
+    if (
+      !academicData.selectedClass ||
+      academicData.selectedClass === "" ||
+      academicData.selectedClass === "Not Specified"
+    ) {
+      newErrors.push("Please select a class");
+    }
+
     // Check UploadStatus
     if (uploadStatus.placementForm.length === 0)
       newErrors.push("Placement Form is required");
@@ -181,7 +191,6 @@ export default function Submit({
     setIsPending(true);
     setErrors([]);
     setSubmissionStatus("PENDING");
-
     if (!applicationNumber) {
       setErrors(["Application number is not available. Please try again."]);
       setIsPending(false);

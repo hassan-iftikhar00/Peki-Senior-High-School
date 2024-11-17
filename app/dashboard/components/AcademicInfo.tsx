@@ -1,17 +1,16 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
+import { useSchoolSettings } from "@/app/contexts/SchoolSettingsContext";
 
-interface ProgramClasses {
-  [key: string]: string[];
-}
-
-interface ClassCapacities {
-  [key: string]: {
-    [key: string]: number;
-  };
-}
-
-interface ProgramElectives {
-  [key: string]: string[];
+interface Class {
+  _id: string;
+  name: string;
+  programme: string;
+  capacity: number;
+  occupancy: number;
+  coreSubjects: string[];
+  electiveSubjects: string[];
 }
 
 interface AcademicData {
@@ -24,166 +23,112 @@ interface AcademicData {
 interface AcademicInfoProps {
   programme: string;
   academicInfo: AcademicData;
+  onAcademicInfoChange: (newAcademicInfo: AcademicData) => void;
+  isEditMode: boolean;
 }
-
-interface ApiResponse {
-  occupancy?: {
-    [programme: string]: {
-      [className: string]: number;
-    };
-  };
-  error?: string;
-}
-
-// Current code: Commenting out `programClasses` and `programElectives` mappings for now.
-// const programClasses: ProgramClasses = {
-//   "General Arts": ["Form 1 Arts", "Form 2 Arts", "Form 3 Arts"],
-//   "General Science": ["G. Sci A", "G. Sci B"],
-//   Business: ["Form 1 Business", "Form 2 Business", "Form 3 Business"],
-//   "Visual Arts": [
-//     "Form 1 Visual Arts",
-//     "Form 2 Visual Arts",
-//     "Form 3 Visual Arts",
-//   ],
-//   "Home Economics": [
-//     "Form 1 Home Economics",
-//     "Form 2 Home Economics",
-//     "Form 3 Home Economics",
-//   ],
-// };
-
-// const programElectives: ProgramElectives = {
-//   "General Arts": ["Literature", "Government", "Economics", "French"],
-//   "General Science": [
-//     "Physics",
-//     "Chemistry",
-//     "Biology",
-//     "Elective Mathematics",
-//   ],
-//   Business: [
-//     "Financial Accounting",
-//     "Cost Accounting",
-//     "Business Management",
-//     "Economics",
-//   ],
-//   "Visual Arts": ["Graphic Design", "Picture Making", "Ceramics", "Sculpture"],
-//   "Home Economics": [
-//     "Food and Nutrition",
-//     "Clothing and Textiles",
-//     "Management in Living",
-//     "General Knowledge in Art",
-//   ],
-// };
-
-const coreSubjectsForAllPrograms = [
-  "English Language",
-  "Core Mathematics",
-  "Integrated Science",
-  "Social Studies",
-];
 
 export default function AcademicInfo({
   programme,
   academicInfo,
+  onAcademicInfoChange,
+  isEditMode,
 }: AcademicInfoProps) {
-  const [classCapacity, setClassCapacity] = useState<string>("");
+  const { settings } = useSchoolSettings();
+  const [availableClasses, setAvailableClasses] = useState<Class[]>([]);
+  const [selectedClass, setSelectedClass] = useState<string>(
+    academicInfo.selectedClass
+  );
+  const [coreSubjects, setCoreSubjects] = useState<string[]>(
+    academicInfo.coreSubjects
+  );
+  const [electiveSubjects, setElectiveSubjects] = useState<string[]>(
+    academicInfo.electiveSubjects
+  );
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    // fetchClassCapacity();
-  }, []);
-  // mapping from databse!!!!!
+    if (settings.isClassSelectionEnabled) {
+      fetchAvailableClasses();
+    }
+  }, [programme, settings.isClassSelectionEnabled]);
 
-  // const fetchClassCapacity = async () => {
-  //   try {
-  //     const response = await fetch("/api/class-occupancy");
-  //     const data: ApiResponse = await response.json();
+  const fetchAvailableClasses = async () => {
+    try {
+      const response = await fetch(
+        `/api/admin/classes?programme=${encodeURIComponent(programme)}`
+      );
+      if (response.ok) {
+        const data: Class[] = await response.json();
+        console.log("Fetched classes:", data);
 
-  //     if (
-  //       data.occupancy &&
-  //       data.occupancy[programme] &&
-  //       data.occupancy[programme][academicInfo.selectedClass]
-  //     ) {
-  //       const totalCapacity = 45;
-  //       const occupiedSeats =
-  //         data.occupancy[programme][academicInfo.selectedClass];
-  //       const availableSeats = Math.max(0, totalCapacity - occupiedSeats);
-  //       setClassCapacity(`${availableSeats} seats left`);
-  //     } else {
-  //       setClassCapacity("Capacity data not available");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching class capacity:", error);
-  //     setClassCapacity("Error fetching capacity");
-  //   }
-  // };
+        const validClasses = data.filter((cls) => {
+          if (
+            !cls ||
+            typeof cls.capacity !== "number" ||
+            typeof cls.occupancy !== "number"
+          ) {
+            console.error(`Invalid class data:`, cls);
+            return false;
+          }
+          return true;
+        });
 
-  //   return (
-  //     <div id="academic" className="section academic-info">
-  //       <h2>Academic Information</h2>
-  //       <p className="subtitle headings">Your academic details</p>
-  //       <div className="form-grid">
-  //         <div className="form-group" style={{ gridColumn: "span 2" }}>
-  //           <label htmlFor="program">Program</label>
-  //           <input type="text" id="program" value={programme} disabled />
-  //         </div>
-  //         <div className="form-group" style={{ gridColumn: "span 2" }}>
-  //           <label htmlFor="class">Class</label>
-  //           <input
-  //             type="text"
-  //             id="class"
-  //             value={academicInfo.selectedClass}
-  //             disabled
-  //           />
-  //         </div>
-  //         <div className="form-group" style={{ gridColumn: "span 2" }}>
-  //           <div className="capacity-display">
-  //             <span className="capacity-label">Class Capacity</span>
-  //             <span className="capacity-value">{classCapacity}</span>
-  //           </div>
-  //         </div>
-  //         <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-  //           <fieldset id="coreSubjects" className="subject-group">
-  //             <legend>Core Subjects</legend>
-  //             {coreSubjectsForAllPrograms.map((subject) => (
-  //               <div key={subject}>
-  //                 <input
-  //                   type="checkbox"
-  //                   id={subject.toLowerCase().replace(/\s+/g, "-")}
-  //                   name="coreSubject"
-  //                   value={subject}
-  //                   checked
-  //                   disabled
-  //                 />
-  //                 <label htmlFor={subject.toLowerCase().replace(/\s+/g, "-")}>
-  //                   {subject}
-  //                 </label>
-  //               </div>
-  //             ))}
-  //           </fieldset>
-  //         </div>
-  //         <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-  //           <fieldset id="electiveSubjects" className="subject-group">
-  //             <legend>Elective Subjects</legend>
-  //             {programElectives[programme]?.map((subject) => (
-  //               <div key={subject}>
-  //                 <input
-  //                   type="checkbox"
-  //                   id={subject.toLowerCase().replace(/\s+/g, "-")}
-  //                   name="electiveSubject"
-  //                   value={subject}
-  //                   checked={academicInfo.electiveSubjects.includes(subject)}
-  //                   disabled
-  //                 />
-  //                 <label htmlFor={subject.toLowerCase().replace(/\s+/g, "-")}>
-  //                   {subject}
-  //                 </label>
-  //               </div>
-  //             ))}
-  //           </fieldset>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // }
+        setAvailableClasses(validClasses);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Failed to fetch available classes");
+      }
+    } catch (error) {
+      console.error("Error fetching available classes:", error);
+      setError("An error occurred while fetching classes");
+    }
+  };
+
+  const handleClassChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const classId = e.target.value;
+    setSelectedClass(classId);
+    if (classId === "") {
+      onAcademicInfoChange({
+        selectedClass: "",
+        classCapacity: "",
+        coreSubjects: [],
+        electiveSubjects: [],
+      });
+      setCoreSubjects([]);
+      setElectiveSubjects([]);
+    } else {
+      const selectedClassData = availableClasses.find(
+        (cls) => cls._id === classId
+      );
+      if (selectedClassData) {
+        setCoreSubjects(selectedClassData.coreSubjects);
+        setElectiveSubjects(selectedClassData.electiveSubjects);
+        onAcademicInfoChange({
+          selectedClass: classId,
+          classCapacity: selectedClassData.capacity.toString(),
+          coreSubjects: selectedClassData.coreSubjects,
+          electiveSubjects: selectedClassData.electiveSubjects,
+        });
+      }
+    }
+  };
+
+  const getRemainingSeats = (cls: Class | undefined): number => {
+    if (
+      !cls ||
+      typeof cls.capacity !== "number" ||
+      typeof cls.occupancy !== "number"
+    ) {
+      console.error(`Invalid class data:`, cls);
+      return 0;
+    }
+    return Math.max(0, cls.capacity - cls.occupancy);
+  };
+
+  if (error) {
+    return <div className="error-message">{error}</div>;
+  }
+
   return (
     <div id="academic" className="section academic-info">
       <h2>Academic Information</h2>
@@ -195,46 +140,98 @@ export default function AcademicInfo({
         </div>
         <div className="form-group" style={{ gridColumn: "span 2" }}>
           <label htmlFor="class">Class</label>
-          {/* Displaying "yet to be decided" for the class */}
-          <input
-            type="text"
-            id="class"
-            value="Yet to be decided!"
-            className="yet-to-be-decided"
-            disabled
-          />
+          {settings.isClassSelectionEnabled ? (
+            <select
+              id="class"
+              value={selectedClass}
+              onChange={handleClassChange}
+              className="form-select"
+              disabled={!isEditMode}
+            >
+              <option value="">Select a class</option>
+              {availableClasses.map((cls) => (
+                <option
+                  key={cls._id}
+                  value={cls._id}
+                  disabled={getRemainingSeats(cls) === 0}
+                >
+                  {cls.name} ({getRemainingSeats(cls)} seats remaining)
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              id="class"
+              value="Yet to be decided!"
+              className="yet-to-be-decided"
+              disabled
+            />
+          )}
         </div>
         <div className="form-group" style={{ gridColumn: "span 2" }}>
           <div className="capacity-display">
-            <span className="capacity-label">Class Capacity</span>
-            <span className="capacity-value">{classCapacity}</span>
+            <span className="capacity-label">Remaining Seats</span>
+            <span className="capacity-value">
+              {selectedClass
+                ? `${getRemainingSeats(
+                    availableClasses.find((cls) => cls._id === selectedClass)
+                  )} seats`
+                : "N/A"}
+            </span>
           </div>
         </div>
         <div className="form-group" style={{ gridColumn: "1 / -1" }}>
           <fieldset id="coreSubjects" className="subject-group">
             <legend>Core Subjects</legend>
-            {coreSubjectsForAllPrograms.map((subject) => (
-              <div key={subject}>
-                <input
-                  type="checkbox"
-                  id={subject.toLowerCase().replace(/\s+/g, "-")}
-                  name="coreSubject"
-                  value={subject}
-                  checked
-                  disabled
-                />
-                <label htmlFor={subject.toLowerCase().replace(/\s+/g, "-")}>
-                  {subject}
-                </label>
-              </div>
-            ))}
+            {academicInfo.coreSubjects &&
+            academicInfo.coreSubjects.length > 0 ? (
+              academicInfo.coreSubjects.map((subject) => (
+                <div key={subject}>
+                  <input
+                    type="checkbox"
+                    id={subject.toLowerCase().replace(/\s+/g, "-")}
+                    name="coreSubject"
+                    value={subject}
+                    checked
+                    disabled
+                  />
+                  <label htmlFor={subject.toLowerCase().replace(/\s+/g, "-")}>
+                    {subject}
+                  </label>
+                </div>
+              ))
+            ) : (
+              <p>No core subjects available for this class.</p>
+            )}
           </fieldset>
         </div>
         <div className="form-group" style={{ gridColumn: "1 / -1" }}>
           <fieldset id="electiveSubjects" className="subject-group">
             <legend>Elective Subjects</legend>
-            {/* Displaying "yet to be decided" for elective subjects */}
-            <p className="yet-to-be-decided">Yet to be decided!</p>
+            {settings.isClassSelectionEnabled ? (
+              electiveSubjects.length > 0 ? (
+                electiveSubjects.map((subject) => (
+                  <div key={subject}>
+                    <input
+                      type="checkbox"
+                      id={subject.toLowerCase().replace(/\s+/g, "-")}
+                      name="electiveSubject"
+                      value={subject}
+                      checked
+                      disabled
+                    />
+                    <label htmlFor={subject.toLowerCase().replace(/\s+/g, "-")}>
+                      {subject}
+                    </label>
+                  </div>
+                ))
+              ) : (
+                <p>No elective subjects available for this class.</p>
+              )
+            ) : (
+              <p className="yet-to-be-decided">Yet to be decided!</p>
+            )}
           </fieldset>
         </div>
       </div>

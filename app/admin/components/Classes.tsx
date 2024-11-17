@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, X } from "lucide-react";
+
+import { useSchoolSettings } from "@/app/contexts/SchoolSettingsContext";
 
 interface Programme {
   _id: string;
@@ -14,10 +16,12 @@ interface Class {
   programme: Programme | string;
   capacity: number;
   occupancy: number;
+  coreSubjects: string[];
   electiveSubjects: string[];
 }
 
 export default function Classes() {
+  const { settings, updateSettings } = useSchoolSettings();
   const [classes, setClasses] = useState<Class[]>([]);
   const [programmes, setProgrammes] = useState<Programme[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -31,6 +35,12 @@ export default function Classes() {
   useEffect(() => {
     fetchClasses();
     fetchProgrammes();
+
+    // Set up an interval to fetch classes every 30 seconds
+    const intervalId = setInterval(fetchClasses, 30000);
+
+    // Clean up the interval when the component unmounts
+    return () => clearInterval(intervalId);
   }, []);
 
   const fetchClasses = async () => {
@@ -40,12 +50,23 @@ export default function Classes() {
         throw new Error("Failed to fetch classes");
       }
       const data = await response.json();
+      console.log("Fetched classes:", data);
       setClasses(data);
       setIsLoading(false);
     } catch (error) {
       console.error("Error fetching classes:", error);
       setError("Failed to load classes. Please try again later.");
       setIsLoading(false);
+    }
+  };
+
+  const handleToggleClassSelection = async () => {
+    try {
+      await updateSettings({
+        isClassSelectionEnabled: !settings.isClassSelectionEnabled,
+      });
+    } catch (error) {
+      console.error("Error updating class selection status:", error);
     }
   };
 
@@ -81,6 +102,7 @@ export default function Classes() {
       const addedClass = await response.json();
       setClasses([...classes, addedClass]);
       setIsAddModalOpen(false);
+      await fetchClasses();
     } catch (error) {
       console.error("Error adding class:", error);
       setError(
@@ -114,6 +136,7 @@ export default function Classes() {
       );
       setIsEditModalOpen(false);
       setCurrentClass(null);
+      await fetchClasses();
     } catch (error) {
       console.error("Error updating class:", error);
       setError(
@@ -142,6 +165,7 @@ export default function Classes() {
       setClasses(classes.filter((c) => c._id !== id));
       setIsDeleteModalOpen(false);
       setCurrentClass(null);
+      await fetchClasses();
     } catch (error) {
       console.error("Error deleting class:", error);
       setError(
@@ -182,6 +206,19 @@ export default function Classes() {
               className="search-input"
             />
           </div>
+          <div className="class-selection-toggle">
+            <label htmlFor="class-selection-toggle" className="toggle-label">
+              Enable Class Selection
+              <div
+                className={`toggle-switch ${
+                  settings.isClassSelectionEnabled ? "enabled" : ""
+                }`}
+                onClick={handleToggleClassSelection}
+              >
+                <div className="toggle-slider"></div>
+              </div>
+            </label>
+          </div>
           <button
             className="add-button not-admin"
             onClick={() => setIsAddModalOpen(true)}
@@ -204,6 +241,7 @@ export default function Classes() {
                 <th>Programme</th>
                 <th>Capacity</th>
                 <th>Occupancy</th>
+                <th>Core Subjects</th>
                 <th>Elective Subjects</th>
                 <th>Actions</th>
               </tr>
@@ -222,6 +260,20 @@ export default function Classes() {
                   </td>
                   <td>{cls.capacity}</td>
                   <td>{cls.occupancy}</td>
+                  <td>
+                    <div className="core-subjects">
+                      {cls.coreSubjects && cls.coreSubjects.length > 0 ? (
+                        cls.coreSubjects.map((subject, i) => (
+                          <React.Fragment key={subject}>
+                            <span className="subject-name">{subject}</span>
+                            {i < cls.coreSubjects.length - 1 && ", "}
+                          </React.Fragment>
+                        ))
+                      ) : (
+                        <span>No core subjects</span>
+                      )}
+                    </div>
+                  </td>
                   <td>
                     <div className="elective-subjects">
                       {cls.electiveSubjects.map((subject, i) => (
@@ -260,7 +312,6 @@ export default function Classes() {
               ))}
             </tbody>
           </table>
-
           <div className="table-footer">
             <p>Total number of classes: {filteredClasses.length}</p>
           </div>
@@ -312,7 +363,10 @@ function AddClassModal({ onClose, onAdd, programmes }: AddClassModalProps) {
   const [programmeId, setProgrammeId] = useState("");
   const [capacity, setCapacity] = useState("");
   const [occupancy, setOccupancy] = useState("");
-  const [electiveSubjects, setElectiveSubjects] = useState("");
+  const [coreSubjects, setCoreSubjects] = useState<string[]>([]);
+  const [electiveSubjects, setElectiveSubjects] = useState<string[]>([]);
+  const [newCoreSubject, setNewCoreSubject] = useState("");
+  const [newElectiveSubject, setNewElectiveSubject] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -323,10 +377,27 @@ function AddClassModal({ onClose, onAdd, programmes }: AddClassModalProps) {
       programme: selectedProgramme,
       capacity: parseInt(capacity),
       occupancy: parseInt(occupancy),
-      electiveSubjects: electiveSubjects
-        .split(",")
-        .map((subject) => subject.trim()),
+      coreSubjects,
+      electiveSubjects,
     });
+  };
+
+  const addSubject = (type: "core" | "elective") => {
+    if (type === "core" && newCoreSubject.trim()) {
+      setCoreSubjects([...coreSubjects, newCoreSubject.trim()]);
+      setNewCoreSubject("");
+    } else if (type === "elective" && newElectiveSubject.trim()) {
+      setElectiveSubjects([...electiveSubjects, newElectiveSubject.trim()]);
+      setNewElectiveSubject("");
+    }
+  };
+
+  const removeSubject = (type: "core" | "elective", subject: string) => {
+    if (type === "core") {
+      setCoreSubjects(coreSubjects.filter((s) => s !== subject));
+    } else {
+      setElectiveSubjects(electiveSubjects.filter((s) => s !== subject));
+    }
   };
 
   return (
@@ -390,17 +461,70 @@ function AddClassModal({ onClose, onAdd, programmes }: AddClassModalProps) {
             />
           </div>
           <div className="classes-form-group">
-            <label htmlFor="electiveSubjects">
-              Elective Subjects (comma-separated)
-            </label>
-            <input
-              type="text"
-              id="electiveSubjects"
-              value={electiveSubjects}
-              onChange={(e) => setElectiveSubjects(e.target.value)}
-              required
-              className="classes-form-input"
-            />
+            <label>Core Subjects</label>
+            <div className="subject-input-container">
+              <input
+                type="text"
+                value={newCoreSubject}
+                onChange={(e) => setNewCoreSubject(e.target.value)}
+                className="classes-form-input"
+                placeholder="Add a core subject"
+              />
+              <button
+                type="button"
+                onClick={() => addSubject("core")}
+                className="add-subject-button"
+              >
+                Add
+              </button>
+            </div>
+            <div className="subject-tags">
+              {coreSubjects.map((subject) => (
+                <span key={subject} className="subject-tag">
+                  {subject}
+                  <button
+                    type="button"
+                    onClick={() => removeSubject("core", subject)}
+                    className="remove-subject-button"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="classes-form-group">
+            <label>Elective Subjects</label>
+            <div className="subject-input-container">
+              <input
+                type="text"
+                value={newElectiveSubject}
+                onChange={(e) => setNewElectiveSubject(e.target.value)}
+                className="classes-form-input"
+                placeholder="Add an elective subject"
+              />
+              <button
+                type="button"
+                onClick={() => addSubject("elective")}
+                className="add-subject-button"
+              >
+                Add
+              </button>
+            </div>
+            <div className="subject-tags">
+              {electiveSubjects.map((subject) => (
+                <span key={subject} className="subject-tag">
+                  {subject}
+                  <button
+                    type="button"
+                    onClick={() => removeSubject("elective", subject)}
+                    className="remove-subject-button"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </span>
+              ))}
+            </div>
           </div>
           <div className="classes-form-footer">
             <button
@@ -441,9 +565,14 @@ function EditClassModal({
   );
   const [capacity, setCapacity] = useState(classToEdit.capacity.toString());
   const [occupancy, setOccupancy] = useState(classToEdit.occupancy.toString());
-  const [electiveSubjects, setElectiveSubjects] = useState(
-    classToEdit.electiveSubjects.join(", ")
+  const [coreSubjects, setCoreSubjects] = useState<string[]>(
+    classToEdit.coreSubjects || []
   );
+  const [electiveSubjects, setElectiveSubjects] = useState<string[]>(
+    classToEdit.electiveSubjects
+  );
+  const [newCoreSubject, setNewCoreSubject] = useState("");
+  const [newElectiveSubject, setNewElectiveSubject] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -455,10 +584,27 @@ function EditClassModal({
       programme: selectedProgramme,
       capacity: parseInt(capacity),
       occupancy: parseInt(occupancy),
-      electiveSubjects: electiveSubjects
-        .split(",")
-        .map((subject) => subject.trim()),
+      coreSubjects,
+      electiveSubjects,
     });
+  };
+
+  const addSubject = (type: "core" | "elective") => {
+    if (type === "core" && newCoreSubject.trim()) {
+      setCoreSubjects([...coreSubjects, newCoreSubject.trim()]);
+      setNewCoreSubject("");
+    } else if (type === "elective" && newElectiveSubject.trim()) {
+      setElectiveSubjects([...electiveSubjects, newElectiveSubject.trim()]);
+      setNewElectiveSubject("");
+    }
+  };
+
+  const removeSubject = (type: "core" | "elective", subject: string) => {
+    if (type === "core") {
+      setCoreSubjects(coreSubjects.filter((s) => s !== subject));
+    } else {
+      setElectiveSubjects(electiveSubjects.filter((s) => s !== subject));
+    }
   };
 
   return (
@@ -521,17 +667,70 @@ function EditClassModal({
             />
           </div>
           <div className="classes-form-group">
-            <label htmlFor="electiveSubjects">
-              Elective Subjects (comma-separated)
-            </label>
-            <input
-              type="text"
-              id="electiveSubjects"
-              value={electiveSubjects}
-              onChange={(e) => setElectiveSubjects(e.target.value)}
-              required
-              className="classes-form-input"
-            />
+            <label>Core Subjects</label>
+            <div className="subject-input-container">
+              <input
+                type="text"
+                value={newCoreSubject}
+                onChange={(e) => setNewCoreSubject(e.target.value)}
+                className="classes-form-input"
+                placeholder="Add a core subject"
+              />
+              <button
+                type="button"
+                onClick={() => addSubject("core")}
+                className="add-subject-button"
+              >
+                Add
+              </button>
+            </div>
+            <div className="subject-tags">
+              {coreSubjects.map((subject) => (
+                <span key={subject} className="subject-tag">
+                  {subject}
+                  <button
+                    type="button"
+                    onClick={() => removeSubject("core", subject)}
+                    className="remove-subject-button not-admin"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="classes-form-group">
+            <label>Elective Subjects</label>
+            <div className="subject-input-container">
+              <input
+                type="text"
+                value={newElectiveSubject}
+                onChange={(e) => setNewElectiveSubject(e.target.value)}
+                className="classes-form-input"
+                placeholder="Add an elective subject"
+              />
+              <button
+                type="button"
+                onClick={() => addSubject("elective")}
+                className="add-subject-button not-admin"
+              >
+                Add
+              </button>
+            </div>
+            <div className="subject-tags">
+              {electiveSubjects.map((subject) => (
+                <span key={subject} className="subject-tag">
+                  {subject}
+                  <button
+                    type="button"
+                    onClick={() => removeSubject("elective", subject)}
+                    className="remove-subject-button not-admin"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </span>
+              ))}
+            </div>
           </div>
           <div className="classes-form-footer">
             <button

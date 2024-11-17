@@ -18,8 +18,13 @@ interface Student {
   houseAssigned?: string;
   houseName?: string;
   house?: string;
+  className?: string;
 }
-
+interface Column {
+  key: keyof Student;
+  label: string;
+  visible: boolean;
+}
 interface Column {
   key: keyof Student;
   label: string;
@@ -47,6 +52,7 @@ export default function Students() {
     { key: "programme", label: "Programme", visible: true },
     { key: "feePaid", label: "Payment Status", visible: true },
     { key: "houseAssigned", label: "House", visible: true },
+    { key: "className", label: "Class", visible: true },
   ]);
   const router = useRouter();
 
@@ -353,8 +359,10 @@ export default function Students() {
                           student.houseAssigned ||
                           student.houseName ||
                           "Not Assigned"
+                        ) : column.key === "className" ? (
+                          student.className || "Not Assigned"
                         ) : (
-                          student[column.key] || "N/A"
+                          (student[column.key] as string) || "N/A"
                         )}
                       </td>
                     ))}

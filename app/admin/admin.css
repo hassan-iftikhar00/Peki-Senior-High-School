@@ -1656,6 +1656,7 @@ button:active {
   width: 100%;
   margin: 0 1rem;
   max-height: 90vh;
+
   overflow-y: auto;
 }
 
@@ -2570,6 +2571,51 @@ button:active {
 }
 
 /* Classes page specific styles */
+
+/* toggle */
+
+.class-selection-toggle {
+  display: flex;
+  align-items: center;
+  margin-right: 1rem;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.toggle-switch {
+  position: relative;
+  width: 60px;
+  height: 34px;
+  background-color: #ccc;
+  border-radius: 34px;
+  margin-left: 10px;
+  transition: background-color 0.3s;
+}
+
+.toggle-switch.enabled {
+  background-color: #2196f3;
+}
+
+.toggle-slider {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  border-radius: 50%;
+  transition: 0.3s;
+}
+
+.toggle-switch.enabled .toggle-slider {
+  transform: translateX(26px);
+}
+
 .classes-page {
   padding: 24px;
   background-color: #f4f6f8;
@@ -2815,6 +2861,50 @@ button:active {
   .classes-table td {
     padding: 12px 16px;
   }
+}
+.subject-input-container {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.add-subject-button {
+  padding: 8px 16px;
+  background-color: #f0f0f0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.add-subject-button:hover {
+  background-color: #e0e0e0;
+}
+
+.subject-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.subject-tag {
+  display: inline-flex;
+  align-items: center;
+  background-color: #e0e0e0;
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 14px;
+}
+
+.remove-subject-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 4px;
+  display: flex;
+  align-items: center;
 }
 
 /* Houses page specific styles */

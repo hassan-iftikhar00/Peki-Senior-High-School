@@ -292,6 +292,20 @@ export default function Dashboard() {
     [isSubmitted, isEditMode]
   );
 
+  const handleAcademicInfoChange = useCallback(
+    (newAcademicInfo: AcademicData) => {
+      if (isSubmitted && !isEditMode) return;
+      setApplicantData((prevData) => {
+        if (!prevData) return null;
+        return {
+          ...prevData,
+          academicInfo: newAcademicInfo,
+        };
+      });
+    },
+    [isSubmitted, isEditMode]
+  );
+
   const handleUploadStatusChange = useCallback(
     (newUploadStatus: UploadStatus) => {
       if (isSubmitted && !isEditMode) return;
@@ -373,6 +387,8 @@ export default function Dashboard() {
             <AcademicInfo
               programme={applicantData.programme}
               academicInfo={applicantData.academicInfo}
+              onAcademicInfoChange={handleAcademicInfoChange}
+              isEditMode={isEditMode}
             />
             <House
               gender={applicantData.gender}

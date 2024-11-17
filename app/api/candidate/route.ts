@@ -1,275 +1,7 @@
-// import { NextResponse } from "next/server";
-// import Candidate from "@/models/Candidate";
-// import House from "@/models/House";
-// import { connectToDatabase } from "@/lib/db";
-// import { assignHouse } from "@/app/utils/houseAssignment";
-// import mongoose from "mongoose";
-
-// // Helper function to format file data consistently
-// const formatFileData = (
-//   file: string | { name: string; url: string; _id?: string }
-// ) => {
-//   if (typeof file === "string") {
-//     // Extract filename from URL
-//     const fileName = file.split("/").pop() || "file";
-//     return {
-//       name: fileName,
-//       url: file,
-//     };
-//   }
-//   // If it's already an object, return without _id
-//   const { _id, ...fileData } = file;
-//   return fileData;
-// };
-
-// export async function POST(request: Request) {
-//   let session;
-//   try {
-//     await connectToDatabase();
-//     session = await mongoose.startSession();
-//     session.startTransaction();
-
-//     const candidateData = await request.json();
-//     console.log(
-//       "Received candidate data:",
-//       JSON.stringify(candidateData, null, 2)
-//     );
-
-//     // Format the uploads data to match the schema
-//     const formattedUploads = {
-//       placementForm: candidateData.uploads.placementForm
-//         .filter(Boolean)
-//         .map(formatFileData),
-//       nhisCard: candidateData.uploads.nhisCard
-//         ? formatFileData(candidateData.uploads.nhisCard)
-//         : null,
-//       idDocument: candidateData.uploads.idDocument
-//         ? formatFileData(candidateData.uploads.idDocument)
-//         : null,
-//       medicalRecords: (candidateData.uploads.medicalRecords || [])
-//         .filter(Boolean)
-//         .map(formatFileData),
-//     };
-
-//     // Check if a house is already assigned
-//     let houseId = candidateData.houseId;
-//     if (!houseId) {
-//       // Assign house based on gender
-//       houseId = await assignHouse(candidateData.gender);
-//       if (!houseId) {
-//         await session.abortTransaction();
-//         console.log("No available houses for gender:", candidateData.gender);
-//         return NextResponse.json(
-//           { error: "No available houses" },
-//           { status: 400 }
-//         );
-//       }
-//     }
-
-//     // Verify the assigned house
-//     const house = await House.findById(houseId).session(session);
-//     if (!house) {
-//       await session.abortTransaction();
-//       console.log("Assigned house not found:", houseId);
-//       return NextResponse.json(
-//         { error: "Assigned house not found" },
-//         { status: 400 }
-//       );
-//     }
-
-//     if (house.currentOccupancy >= house.capacity) {
-//       await session.abortTransaction();
-//       console.log("Assigned house is full:", houseId);
-//       return NextResponse.json(
-//         { error: "Assigned house is full" },
-//         { status: 400 }
-//       );
-//     }
-
-//     const formattedData = {
-//       ...candidateData,
-//       uploads: formattedUploads,
-//       house: houseId,
-//     };
-
-//     // Try to find an existing document with the same indexNumber
-//     const existingCandidate = await Candidate.findOne({
-//       indexNumber: candidateData.indexNumber,
-//     }).session(session);
-
-//     let updatedCandidate;
-//     if (existingCandidate) {
-//       // If gender is being updated, reassign house
-//       if (existingCandidate.gender !== candidateData.gender) {
-//         const newHouseId = await assignHouse(candidateData.gender);
-
-//         if (!newHouseId) {
-//           await session.abortTransaction();
-//           console.log(
-//             "No available houses for new gender:",
-//             candidateData.gender
-//           );
-//           return NextResponse.json(
-//             { error: "No available houses for new gender" },
-//             { status: 400 }
-//           );
-//         }
-
-//         // Decrease occupancy of old house
-//         if (existingCandidate.house) {
-//           await House.findByIdAndUpdate(existingCandidate.house, {
-//             $inc: { currentOccupancy: -1 },
-//           }).session(session);
-//         }
-
-//         formattedData.house = newHouseId;
-//       }
-
-//       updatedCandidate = await Candidate.findOneAndUpdate(
-//         { indexNumber: candidateData.indexNumber },
-//         formattedData,
-//         {
-//           new: true,
-//           runValidators: true,
-//           session,
-//         }
-//       );
-//     } else {
-//       updatedCandidate = new Candidate(formattedData);
-//       await updatedCandidate.save({ session });
-//     }
-
-//     // Increase occupancy of the assigned house
-//     await House.findByIdAndUpdate(formattedData.house, {
-//       $inc: { currentOccupancy: 1 },
-//     }).session(session);
-
-//     await session.commitTransaction();
-//     console.log("Transaction committed successfully");
-
-//     return NextResponse.json({
-//       message: existingCandidate
-//         ? "Candidate Data Updated Successfully!"
-//         : "Candidate Data Saved Successfully!",
-//       candidate: updatedCandidate,
-//       applicationNumber: candidateData.applicationNumber,
-//     });
-//   } catch (error: unknown) {
-//     console.error("Error saving/updating candidate data:", error);
-//     if (session) {
-//       await session.abortTransaction();
-//       console.log("Transaction aborted");
-//     }
-//     const errorMessage =
-//       error instanceof Error ? error.message : "Unknown error occurred";
-//     return NextResponse.json(
-//       { error: "Failed to save/update candidate data.", details: errorMessage },
-//       { status: 500 }
-//     );
-//   } finally {
-//     if (session) {
-//       session.endSession();
-//       console.log("Session ended");
-//     }
-//   }
-// }
-
-// export async function PUT(request: Request) {
-//   await connectToDatabase();
-
-//   try {
-//     const candidateData = await request.json();
-//     console.log(
-//       "Received candidate update data:",
-//       JSON.stringify(candidateData, null, 2)
-//     );
-
-//     const existingCandidate = await Candidate.findOne({
-//       indexNumber: candidateData.indexNumber,
-//     });
-
-//     if (!existingCandidate) {
-//       return NextResponse.json(
-//         { error: "Candidate not found" },
-//         { status: 404 }
-//       );
-//     }
-
-//     // Format the uploads data to match the schema
-//     const formattedUploads = {
-//       placementForm: candidateData.uploads.placementForm
-//         .filter(Boolean)
-//         .map(formatFileData),
-//       nhisCard: candidateData.uploads.nhisCard
-//         ? formatFileData(candidateData.uploads.nhisCard)
-//         : null,
-//       idDocument: candidateData.uploads.idDocument
-//         ? formatFileData(candidateData.uploads.idDocument)
-//         : null,
-//       medicalRecords: (candidateData.uploads.medicalRecords || [])
-//         .filter(Boolean)
-//         .map(formatFileData),
-//     };
-
-//     // If gender is being updated, reassign house
-//     if (
-//       candidateData.gender &&
-//       candidateData.gender !== existingCandidate.gender
-//     ) {
-//       const newHouseId = await assignHouse(candidateData.gender);
-
-//       if (!newHouseId) {
-//         return NextResponse.json(
-//           { error: "No available houses for new gender" },
-//           { status: 400 }
-//         );
-//       }
-
-//       // Decrease occupancy of old house
-//       if (existingCandidate.house) {
-//         await House.findByIdAndUpdate(existingCandidate.house, {
-//           $inc: { currentOccupancy: -1 },
-//         });
-//       }
-
-//       candidateData.house = newHouseId;
-//     } else {
-//       candidateData.house = existingCandidate.house;
-//     }
-
-//     const formattedData = {
-//       ...candidateData,
-//       uploads: formattedUploads,
-//     };
-
-//     const updatedCandidate = await Candidate.findOneAndUpdate(
-//       { indexNumber: candidateData.indexNumber },
-//       formattedData,
-//       {
-//         new: true,
-//         runValidators: true,
-//       }
-//     );
-
-//     return NextResponse.json({
-//       message: "Candidate Data Updated Successfully!",
-//       candidate: updatedCandidate,
-//       applicationNumber: candidateData.applicationNumber,
-//     });
-//   } catch (error: unknown) {
-//     console.error("Error updating candidate data:", error);
-//     const errorMessage =
-//       error instanceof Error ? error.message : "Unknown error occurred";
-//     return NextResponse.json(
-//       { error: "Failed to update candidate data.", details: errorMessage },
-//       { status: 500 }
-//     );
-//   }
-// }
-
 import { NextResponse } from "next/server";
 import Candidate from "@/models/Candidate";
 import House from "@/models/House";
+import Class from "@/models/Class";
 import { connectToDatabase } from "@/lib/db";
 import { assignHouse } from "@/app/utils/houseAssignment";
 import mongoose from "mongoose";
@@ -351,6 +83,8 @@ export async function POST(request: Request) {
       indexNumber: candidateData.indexNumber,
     }).session(session);
 
+    console.log("Existing candidate:", existingCandidate);
+
     let houseId =
       candidateData.houseId || (existingCandidate && existingCandidate.house);
 
@@ -399,6 +133,59 @@ export async function POST(request: Request) {
       );
     }
 
+    // Handle class assignment and occupancy
+    let classId = candidateData.academicInfo.selectedClass;
+    console.log("Selected class ID:", classId);
+
+    if (classId && classId !== "Not Specified") {
+      const selectedClass = await Class.findById(classId).session(session);
+      if (!selectedClass) {
+        await session.abortTransaction();
+        console.log("Selected class not found:", classId);
+        return NextResponse.json(
+          { error: "Selected class not found. Please try again." },
+          { status: 400 }
+        );
+      }
+
+      console.log("Selected class:", selectedClass);
+
+      if (selectedClass.occupancy >= selectedClass.capacity) {
+        await session.abortTransaction();
+        console.log("Selected class is full:", classId);
+        return NextResponse.json(
+          { error: "Selected class is full. Please choose another class." },
+          { status: 400 }
+        );
+      }
+
+      // If the candidate is changing classes, update occupancies
+      if (existingCandidate && existingCandidate.academicInfo) {
+        const existingClassId = existingCandidate.academicInfo.selectedClass;
+        console.log("Existing class ID:", existingClassId);
+
+        if (existingClassId) {
+          const existingClassIdString = existingClassId.toString();
+          if (
+            existingClassIdString !== classId &&
+            existingClassIdString !== "Not Specified"
+          ) {
+            await Class.findByIdAndUpdate(existingClassId, {
+              $inc: { occupancy: -1 },
+            }).session(session);
+            await Class.findByIdAndUpdate(classId, {
+              $inc: { occupancy: 1 },
+            }).session(session);
+          }
+        }
+      } else if (!existingCandidate) {
+        // If it's a new candidate, increase the occupancy of the selected class
+        await Class.findByIdAndUpdate(classId, {
+          $inc: { occupancy: 1 },
+        }).session(session);
+      }
+    }
+
     // Generate or validate application number
     let applicationNumber = candidateData.applicationNumber;
     if (!applicationNumber || !/^\d{6}-\d{4}$/.test(applicationNumber)) {
@@ -414,11 +201,12 @@ export async function POST(request: Request) {
       houseAssigned: house.name,
       academicInfo: {
         ...candidateData.academicInfo,
-        selectedClass:
-          candidateData.academicInfo.selectedClass || "Not Specified",
+        selectedClass: classId,
       },
       applicationNumber,
     };
+
+    console.log("Formatted data:", JSON.stringify(formattedData, null, 2));
 
     let updatedCandidate;
     let attempts = 0;

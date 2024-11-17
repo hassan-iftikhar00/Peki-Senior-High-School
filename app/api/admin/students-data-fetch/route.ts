@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import Candidate from "@/models/Candidate";
+import Class from "@/models/Class";
 import jwt from "jsonwebtoken";
+import { Types } from "mongoose";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -13,6 +15,11 @@ function verifyJWT(token: string): { isValid: boolean; payload: any } {
     console.error("JWT verification failed:", error);
     return { isValid: false, payload: null };
   }
+}
+
+interface IClass {
+  _id: Types.ObjectId;
+  name: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -42,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     const candidates = await Candidate.find({})
       .select(
-        "fullName indexNumber gender aggregate residence programme feePaid houseAssigned houseName houseId"
+        "fullName indexNumber gender aggregate residence programme feePaid houseAssigned houseName houseId academicInfo"
       )
       .lean()
       .exec();
@@ -52,22 +59,35 @@ export async function GET(request: NextRequest) {
       candidates ? candidates.length : "None"
     );
 
-    const transformedCandidates = candidates.map((candidate) => ({
-      fullName: candidate.fullName,
-      indexNumber: candidate.indexNumber,
-      gender: candidate.gender,
-      aggregate: candidate.aggregate,
-      residence: candidate.residence,
-      programme: candidate.programme,
-      feePaid: candidate.feePaid,
-      houseAssigned:
-        candidate.houseAssigned ||
-        candidate.houseName ||
-        candidate.house ||
-        "Not Assigned",
-      houseName: candidate.houseName,
-      houseId: candidate.houseId,
-    }));
+    // Fetch all classes
+    const classes = (await Class.find({}).lean().exec()) as unknown as IClass[];
+    const classMap = new Map(classes.map((c) => [c._id.toString(), c.name]));
+
+    const transformedCandidates = candidates.map((candidate) => {
+      const className =
+        candidate.academicInfo && candidate.academicInfo.selectedClass
+          ? classMap.get(candidate.academicInfo.selectedClass.toString()) ||
+            "Not Assigned"
+          : "Not Assigned";
+
+      return {
+        fullName: candidate.fullName,
+        indexNumber: candidate.indexNumber,
+        gender: candidate.gender,
+        aggregate: candidate.aggregate,
+        residence: candidate.residence,
+        programme: candidate.programme,
+        feePaid: candidate.feePaid,
+        houseAssigned:
+          candidate.houseAssigned ||
+          candidate.houseName ||
+          candidate.house ||
+          "Not Assigned",
+        houseName: candidate.houseName,
+        houseId: candidate.houseId,
+        className: className,
+      };
+    });
 
     console.log("Admin students API: Sending transformed candidate data");
     return NextResponse.json(transformedCandidates);
