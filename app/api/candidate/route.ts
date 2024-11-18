@@ -76,7 +76,7 @@ export async function POST(request: Request) {
     };
 
     // Normalize gender to lowercase
-    const normalizedGender = candidateData.gender.toLowerCase();
+    const normalizedGender = candidateData.gender;
 
     // Find existing candidate
     const existingCandidate = await Candidate.findOne({
