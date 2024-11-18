@@ -168,13 +168,13 @@ export default function Submit({
     if (!additionalData.beceYear) newErrors.push("BECE Year is required");
 
     // Check AcademicData
-    if (
-      !academicData.selectedClass ||
-      academicData.selectedClass === "" ||
-      academicData.selectedClass === "Not Specified"
-    ) {
-      newErrors.push("Please select a class");
-    }
+    // if (
+    //   !academicData.selectedClass ||
+    //   academicData.selectedClass === "" ||
+    //   academicData.selectedClass === "Not Specified"
+    // ) {
+    //   newErrors.push("Please select a class");
+    // }
 
     // Check UploadStatus
     if (uploadStatus.placementForm.length === 0)
