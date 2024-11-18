@@ -77,6 +77,8 @@ export default function Dashboard() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isAssigningHouse, setIsAssigningHouse] = useState(false);
+  const [isHouseAssignmentPending, setIsHouseAssignmentPending] =
+    useState(false);
   const router = useRouter();
 
   const fetchApplicantData = useCallback(async () => {
@@ -166,10 +168,18 @@ export default function Dashboard() {
     },
     [isAssigningHouse]
   );
+
   useEffect(() => {
-    if (applicantData && !applicantData.houseAssigned && !isAssigningHouse) {
-      assignHouse(applicantData.gender, applicantData.indexNumber).then(
-        (houseData) => {
+    if (
+      applicantData &&
+      (!applicantData.houseAssigned ||
+        applicantData.houseAssigned === "Not Assigned") &&
+      !isAssigningHouse &&
+      !isHouseAssignmentPending
+    ) {
+      setIsHouseAssignmentPending(true);
+      assignHouse(applicantData.gender, applicantData.indexNumber)
+        .then((houseData) => {
           if (houseData) {
             setApplicantData((prevData) =>
               prevData
@@ -184,11 +194,40 @@ export default function Dashboard() {
               houseId: houseData.houseId,
               houseAssigned: houseData.houseName,
             });
+            // Update the backend with the new house assignment
+            updateApplicantHouse(houseData.houseId, houseData.houseName);
           }
-        }
-      );
+        })
+        .finally(() => {
+          setIsHouseAssignmentPending(false);
+        });
     }
-  }, [applicantData, assignHouse, isAssigningHouse]);
+  }, [applicantData, assignHouse, isAssigningHouse, isHouseAssignmentPending]);
+
+  const updateApplicantHouse = async (houseId: string, houseName: string) => {
+    try {
+      const response = await fetch("/api/update-applicant-house", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          indexNumber: applicantData?.indexNumber,
+          houseId,
+          houseName,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update applicant house in the database");
+      }
+
+      console.log("Applicant house updated in the database");
+    } catch (error) {
+      console.error("Error updating applicant house:", error);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       localStorage.setItem("isLoggedIn", "false");
