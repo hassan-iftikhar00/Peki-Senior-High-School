@@ -1,18 +1,11 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import Candidate from "@/models/Candidate";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method not allowed" });
-  }
-
+export async function POST(request: Request) {
   try {
     await connectToDatabase();
-    const { indexNumber, houseId, houseName } = req.body;
+    const { indexNumber, houseId, houseName } = await request.json();
 
     const updatedCandidate = await Candidate.findOneAndUpdate(
       { indexNumber },
@@ -21,12 +14,21 @@ export default async function handler(
     );
 
     if (!updatedCandidate) {
-      return res.status(404).json({ message: "Candidate not found" });
+      return NextResponse.json(
+        { message: "Candidate not found" },
+        { status: 404 }
+      );
     }
 
-    res.status(200).json({ message: "House assignment updated successfully" });
+    return NextResponse.json(
+      { message: "House assignment updated successfully" },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error updating house assignment:", error);
-    res.status(500).json({ message: "Internal server error" });
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
