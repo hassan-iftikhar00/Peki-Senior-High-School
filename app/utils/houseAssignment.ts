@@ -4,17 +4,35 @@ import mongoose from "mongoose";
 export async function assignHouse(
   gender: string
 ): Promise<mongoose.Types.ObjectId | null> {
+  console.log(`Attempting to assign house for gender: ${gender}`);
   const normalizedGender = gender.toLowerCase();
+  console.log(`Normalized gender: ${normalizedGender}`);
 
-  const availableHouse = await House.findOne({
-    gender: normalizedGender,
-    $expr: { $lt: ["$currentOccupancy", "$capacity"] },
-  }).sort({ currentOccupancy: 1 });
+  try {
+    const allHouses = await House.find({ gender: normalizedGender });
+    console.log(
+      `All houses for ${normalizedGender}:`,
+      JSON.stringify(allHouses, null, 2)
+    );
 
-  if (!availableHouse) {
-    console.log(`No available houses for gender: ${normalizedGender}`);
+    const availableHouse = await House.findOne({
+      gender: normalizedGender,
+      $expr: { $lt: ["$currentOccupancy", "$capacity"] },
+    }).sort({ currentOccupancy: 1 });
+
+    if (!availableHouse) {
+      console.log(`No available houses for gender: ${normalizedGender}`);
+      return null;
+    }
+
+    console.log(`Found available house: ${availableHouse._id}`);
+    return availableHouse._id;
+  } catch (error) {
+    console.error(
+      `Error in assignHouse: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
     return null;
   }
-
-  return availableHouse._id;
 }

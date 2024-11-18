@@ -76,9 +76,9 @@ export async function POST(request: Request) {
     };
 
     // Normalize gender to lowercase
-    const normalizedGender = candidateData.gender;
+    const normalizedGender = candidateData.gender.toLowerCase();
+    console.log("Normalized gender:", normalizedGender);
 
-    // Find existing candidate
     const existingCandidate = await Candidate.findOne({
       indexNumber: candidateData.indexNumber,
     }).session(session);
@@ -87,32 +87,34 @@ export async function POST(request: Request) {
 
     let houseId =
       candidateData.houseId || (existingCandidate && existingCandidate.house);
+    console.log("Initial houseId:", houseId);
 
-    // If no house is assigned, or if gender has changed, assign a new house
-    if (
-      !houseId ||
-      (existingCandidate && existingCandidate.gender !== normalizedGender)
-    ) {
-      if (existingCandidate && existingCandidate.house) {
-        // Decrease occupancy of old house
-        await House.findByIdAndUpdate(existingCandidate.house, {
-          $inc: { currentOccupancy: -1 },
-        }).session(session);
-      }
-
+    if (!houseId) {
+      console.log("No house assigned, attempting to assign a new house...");
       houseId = await assignHouse(normalizedGender);
+      console.log("Assigned houseId:", houseId);
+
       if (!houseId) {
         await session.abortTransaction();
         console.log("No available houses for gender:", normalizedGender);
+
+        // Log the current state of all houses
+        const allHouses = await House.find({});
+        console.log("All houses:", JSON.stringify(allHouses, null, 2));
+
         return NextResponse.json(
           { error: "No available houses. Please contact the administrator." },
           { status: 400 }
         );
       }
+    } else {
+      console.log("Keeping existing house assignment:", houseId);
     }
 
     // Verify the assigned house
     const house = await House.findById(houseId).session(session);
+    console.log("Found house:", house);
+
     if (!house) {
       await session.abortTransaction();
       console.log("Assigned house not found:", houseId);
@@ -133,6 +135,13 @@ export async function POST(request: Request) {
       );
     }
 
+    // Update the house occupancy if it's a new assignment
+    if (!existingCandidate || !existingCandidate.house) {
+      await House.findByIdAndUpdate(houseId, {
+        $inc: { currentOccupancy: 1 },
+      }).session(session);
+      console.log("Updated house occupancy for new assignment");
+    }
     // Handle class assignment and occupancy
     let classId = candidateData.academicInfo.selectedClass;
     console.log("Selected class ID:", classId);

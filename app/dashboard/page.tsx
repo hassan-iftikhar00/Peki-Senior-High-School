@@ -150,6 +150,7 @@ export default function Dashboard() {
           throw new Error(data.error || "Failed to assign house");
         }
 
+        console.log("House assigned:", data);
         return data;
       } catch (error) {
         console.error("Error assigning house:", error);
@@ -165,9 +166,8 @@ export default function Dashboard() {
     },
     [isAssigningHouse]
   );
-
   useEffect(() => {
-    if (applicantData && !applicantData.houseId && !isAssigningHouse) {
+    if (applicantData && !applicantData.houseAssigned && !isAssigningHouse) {
       assignHouse(applicantData.gender, applicantData.indexNumber).then(
         (houseData) => {
           if (houseData) {
@@ -180,12 +180,15 @@ export default function Dashboard() {
                   }
                 : null
             );
+            console.log("Updated applicant data with house:", {
+              houseId: houseData.houseId,
+              houseAssigned: houseData.houseName,
+            });
           }
         }
       );
     }
   }, [applicantData, assignHouse, isAssigningHouse]);
-
   const handleLogout = async () => {
     try {
       localStorage.setItem("isLoggedIn", "false");

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -17,6 +17,11 @@ export default function House({
   isLoading,
   error,
 }: HouseProps) {
+  useEffect(() => {
+    console.log("House Component - HouseId:", houseId);
+    console.log("House Component - HouseName:", houseName);
+  }, [houseId, houseName]);
+
   return (
     <div id="house" className="section">
       <h2>House Assignment</h2>
@@ -36,7 +41,7 @@ export default function House({
       ) : (
         <>
           <p className="subtitle flashing-text headings">
-            {houseId
+            {houseId && houseName
               ? "House has been assigned automatically."
               : "House will be assigned automatically."}
           </p>
