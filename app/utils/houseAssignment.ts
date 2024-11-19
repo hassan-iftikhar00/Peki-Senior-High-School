@@ -9,14 +9,16 @@ export async function assignHouse(
   console.log(`Normalized gender: ${normalizedGender}`);
 
   try {
-    const allHouses = await House.find({ gender: normalizedGender });
+    const allHouses = await House.find({
+      gender: { $regex: new RegExp(`^${normalizedGender}$`, "i") },
+    });
     console.log(
       `All houses for ${normalizedGender}:`,
       JSON.stringify(allHouses, null, 2)
     );
 
     const availableHouse = await House.findOne({
-      gender: normalizedGender,
+      gender: { $regex: new RegExp(`^${normalizedGender}$`, "i") },
       $expr: { $lt: ["$currentOccupancy", "$capacity"] },
     }).sort({ currentOccupancy: 1 });
 
