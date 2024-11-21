@@ -22,28 +22,53 @@ const formatFileData = (file: string | FileData): FileData => {
   return fileData;
 };
 
+// async function generateUniqueApplicationNumber(): Promise<string> {
+//   const date = new Date();
+//   const day = String(date.getDate()).padStart(2, "0");
+//   const month = String(date.getMonth() + 1).padStart(2, "0");
+//   const year = String(date.getFullYear()).slice(-2);
+
+//   const highestToday = await Candidate.findOne(
+//     {
+//       applicationNumber: new RegExp(`^${day}${month}${year}-`),
+//     },
+//     "applicationNumber"
+//   )
+//     .sort({ applicationNumber: -1 })
+//     .lean();
+
+//   let nextNumber = 1;
+//   if (highestToday && highestToday.applicationNumber) {
+//     const lastNumber = parseInt(highestToday.applicationNumber.split("-")[1]);
+//     nextNumber = lastNumber + 1;
+//   }
+
+//   return `${day}${month}${year}-${String(nextNumber).padStart(4, "0")}`;
+// }
+
 async function generateUniqueApplicationNumber(): Promise<string> {
   const date = new Date();
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = String(date.getFullYear()).slice(-2);
-
-  const highestToday = await Candidate.findOne(
-    {
-      applicationNumber: new RegExp(`^${day}${month}${year}-`),
-    },
-    "applicationNumber"
+  const prefix = `${date.getDate().toString().padStart(2, "0")}${(
+    date.getMonth() + 1
   )
-    .sort({ applicationNumber: -1 })
-    .lean();
+    .toString()
+    .padStart(2, "0")}${date.getFullYear().toString().slice(-2)}-`;
 
-  let nextNumber = 1;
-  if (highestToday && highestToday.applicationNumber) {
-    const lastNumber = parseInt(highestToday.applicationNumber.split("-")[1]);
-    nextNumber = lastNumber + 1;
+  const lastCandidate = await Candidate.findOne(
+    { applicationNumber: new RegExp(`^${prefix}`) },
+    { applicationNumber: 1 },
+    { sort: { applicationNumber: -1 } }
+  );
+
+  let lastNumber = 0;
+  if (lastCandidate && lastCandidate.applicationNumber) {
+    const parts = lastCandidate.applicationNumber.split("-");
+    if (parts.length > 1) {
+      lastNumber = parseInt(parts[1], 10) || 0;
+    }
   }
 
-  return `${day}${month}${year}-${String(nextNumber).padStart(4, "0")}`;
+  return `${prefix}${(lastNumber + 1).toString().padStart(4, "0")}`;
 }
 
 export async function POST(request: Request) {

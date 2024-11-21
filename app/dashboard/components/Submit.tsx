@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { UploadStatus } from "./Uploads";
 import { Loader2 } from "lucide-react";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import AcademicInfo from "./AcademicInfo";
+import { debounce } from "lodash";
 
 interface ApplicantData {
   fullName: string;
@@ -62,6 +63,8 @@ interface SubmitProps {
   isSubmitted: boolean;
   isEditMode: boolean;
 }
+
+const STORAGE_KEY = "applicationFormData";
 
 export default function Submit({
   applicantData,
@@ -185,101 +188,218 @@ export default function Submit({
     return newErrors;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setIsFormSubmitted(true);
+  //   setIsPending(true);
+  //   setErrors([]);
+  //   setSubmissionStatus("PENDING");
+  //   if (!applicationNumber) {
+  //     setErrors(["Application number is not available. Please try again."]);
+  //     setIsPending(false);
+  //     setSubmissionStatus("FAILED");
+  //     return;
+  //   }
+
+  //   const validationErrors = validateRequiredFields();
+  //   if (validationErrors.length > 0) {
+  //     setErrors(validationErrors);
+  //     setIsPending(false);
+  //     setSubmissionStatus("FAILED");
+  //     return;
+  //   }
+
+  //   if (!isDeclarationChecked) {
+  //     setErrors(["Please check the declaration before submitting."]);
+  //     setIsPending(false);
+  //     setSubmissionStatus("FAILED");
+  //     return;
+  //   }
+
+  //   const formattedUploads = {
+  //     placementForm: uploadStatus.placementForm,
+  //     nhisCard: uploadStatus.nhisCard,
+  //     idDocument: uploadStatus.idDocument,
+  //     medicalRecords: uploadStatus.medicalRecords || [],
+  //   };
+
+  //   const candidateData = {
+  //     ...applicantData,
+  //     guardianInfo: guardianData,
+  //     additionalInfo: additionalData,
+  //     academicInfo: {
+  //       ...academicData,
+  //       classCapacity: parseInt(academicData.classCapacity) || 0,
+  //     },
+  //     house: houseData,
+  //     uploads: formattedUploads,
+  //     applicationNumber: applicationNumber,
+  //     position: position,
+  //   };
+
+  //   setLoadingMessage("Submitting your application...");
+
+  //   try {
+  //     console.log(
+  //       "Submitting candidate data:",
+  //       JSON.stringify(candidateData, null, 2)
+  //     );
+
+  //     const response = await fetch("/api/candidate", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify(candidateData),
+  //     });
+
+  //     const data = await response.json();
+  //     console.log("API response:", data);
+
+  //     if (response.ok) {
+  //       setSubmissionMessage(
+  //         `Application submitted successfully! Your application number is: ${applicationNumber}`
+  //       );
+  //       setSubmissionStatus("SUBMITTED");
+  //       onSubmit();
+  //     } else {
+  //       let errorMessage = data.error || "Unknown error occurred";
+  //       if (errorMessage.includes("No available houses")) {
+  //         errorMessage =
+  //           "No available houses. Please contact the administration.";
+  //       }
+  //       setSubmissionMessage(
+  //         `Failed to submit application. Click submit again`
+  //       );
+  //       setSubmissionStatus("FAILED");
+  //       setErrors([errorMessage]);
+  //     }
+  //   } catch (error) {
+  //     console.error("Submission error:", error);
+  //     setSubmissionMessage("An error occurred during submission.");
+  //     setSubmissionStatus("FAILED");
+  //     setErrors(["An unexpected error occurred. Please try again later."]);
+  //   } finally {
+  //     setLoadingMessage("");
+  //     setIsPending(false);
+  //   }
+  // };
+
+  const debouncedSubmit = useCallback(
+    debounce(async () => {
+      setIsPending(true);
+      setErrors([]);
+      setSubmissionStatus("PENDING");
+
+      if (!applicationNumber) {
+        setErrors(["Application number is not available. Please try again."]);
+        setIsPending(false);
+        setSubmissionStatus("FAILED");
+        return;
+      }
+
+      const validationErrors = validateRequiredFields();
+      if (validationErrors.length > 0) {
+        setErrors(validationErrors);
+        setIsPending(false);
+        setSubmissionStatus("FAILED");
+        return;
+      }
+
+      if (!isDeclarationChecked) {
+        setErrors(["Please check the declaration before submitting."]);
+        setIsPending(false);
+        setSubmissionStatus("FAILED");
+        return;
+      }
+
+      const formattedUploads = {
+        placementForm: uploadStatus.placementForm,
+        nhisCard: uploadStatus.nhisCard,
+        idDocument: uploadStatus.idDocument,
+        medicalRecords: uploadStatus.medicalRecords || [],
+      };
+
+      const candidateData = {
+        ...applicantData,
+        guardianInfo: guardianData,
+        additionalInfo: additionalData,
+        academicInfo: {
+          ...academicData,
+          classCapacity: parseInt(academicData.classCapacity) || 0,
+        },
+        house: houseData,
+        uploads: formattedUploads,
+        applicationNumber: applicationNumber,
+        position: position,
+      };
+
+      setLoadingMessage("Submitting your application...");
+
+      try {
+        console.log(
+          "Submitting candidate data:",
+          JSON.stringify(candidateData, null, 2)
+        );
+
+        const response = await fetch("/api/candidate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(candidateData),
+        });
+
+        const data = await response.json();
+        console.log("API response:", data);
+
+        if (response.ok) {
+          setSubmissionMessage(
+            `Application submitted successfully! Your application number is: ${applicationNumber}`
+          );
+          setSubmissionStatus("SUBMITTED");
+          onSubmit();
+          localStorage.removeItem(STORAGE_KEY);
+        } else {
+          let errorMessage = data.error || "Unknown error occurred";
+          if (errorMessage.includes("No available houses")) {
+            errorMessage =
+              "No available houses. Please contact the administration.";
+          }
+          setSubmissionMessage(
+            `Failed to submit application. Click submit again`
+          );
+          setSubmissionStatus("FAILED");
+          setErrors([errorMessage]);
+        }
+      } catch (error) {
+        console.error("Submission error:", error);
+        setSubmissionMessage("An error occurred during submission.");
+        setSubmissionStatus("FAILED");
+        setErrors(["An unexpected error occurred. Please try again later."]);
+      } finally {
+        setLoadingMessage("");
+        setIsPending(false);
+      }
+    }, 300),
+    [
+      applicantData,
+      guardianData,
+      additionalData,
+      academicData,
+      houseData,
+      uploadStatus,
+      applicationNumber,
+      position,
+      isDeclarationChecked,
+      onSubmit,
+    ]
+  );
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsFormSubmitted(true);
-    setIsPending(true);
-    setErrors([]);
-    setSubmissionStatus("PENDING");
-    if (!applicationNumber) {
-      setErrors(["Application number is not available. Please try again."]);
-      setIsPending(false);
-      setSubmissionStatus("FAILED");
-      return;
-    }
-
-    const validationErrors = validateRequiredFields();
-    if (validationErrors.length > 0) {
-      setErrors(validationErrors);
-      setIsPending(false);
-      setSubmissionStatus("FAILED");
-      return;
-    }
-
-    if (!isDeclarationChecked) {
-      setErrors(["Please check the declaration before submitting."]);
-      setIsPending(false);
-      setSubmissionStatus("FAILED");
-      return;
-    }
-
-    const formattedUploads = {
-      placementForm: uploadStatus.placementForm,
-      nhisCard: uploadStatus.nhisCard,
-      idDocument: uploadStatus.idDocument,
-      medicalRecords: uploadStatus.medicalRecords || [],
-    };
-
-    const candidateData = {
-      ...applicantData,
-      guardianInfo: guardianData,
-      additionalInfo: additionalData,
-      academicInfo: {
-        ...academicData,
-        classCapacity: parseInt(academicData.classCapacity) || 0,
-      },
-      house: houseData,
-      uploads: formattedUploads,
-      applicationNumber: applicationNumber,
-      position: position,
-    };
-
-    setLoadingMessage("Submitting your application...");
-
-    try {
-      console.log(
-        "Submitting candidate data:",
-        JSON.stringify(candidateData, null, 2)
-      );
-
-      const response = await fetch("/api/candidate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(candidateData),
-      });
-
-      const data = await response.json();
-      console.log("API response:", data);
-
-      if (response.ok) {
-        setSubmissionMessage(
-          `Application submitted successfully! Your application number is: ${applicationNumber}`
-        );
-        setSubmissionStatus("SUBMITTED");
-        onSubmit();
-      } else {
-        let errorMessage = data.error || "Unknown error occurred";
-        if (errorMessage.includes("No available houses")) {
-          errorMessage =
-            "No available houses. Please contact the administration.";
-        }
-        setSubmissionMessage(
-          `Failed to submit application. Click submit again`
-        );
-        setSubmissionStatus("FAILED");
-        setErrors([errorMessage]);
-      }
-    } catch (error) {
-      console.error("Submission error:", error);
-      setSubmissionMessage("An error occurred during submission.");
-      setSubmissionStatus("FAILED");
-      setErrors(["An unexpected error occurred. Please try again later."]);
-    } finally {
-      setLoadingMessage("");
-      setIsPending(false);
-    }
+    debouncedSubmit();
   };
 
   const handleSaveChanges = async () => {

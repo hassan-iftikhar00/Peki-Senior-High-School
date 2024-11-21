@@ -3,6 +3,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import LoadingOverlay from "@/components/LoadingOverlay";
 
+const STORAGE_KEY = "applicationFormData";
+
 export default function Sidebar() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
@@ -10,6 +12,7 @@ export default function Sidebar() {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
+      localStorage.removeItem(STORAGE_KEY);
       localStorage.setItem("isLoggedIn", "false");
       await fetch("/api/logout", {
         method: "POST",

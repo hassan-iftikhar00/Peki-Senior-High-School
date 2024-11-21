@@ -10,6 +10,8 @@ interface TopBarProps {
   passportPhoto?: string;
 }
 
+const STORAGE_KEY = "applicationFormData";
+
 export default function TopBar({ applicantName, passportPhoto }: TopBarProps) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
@@ -18,6 +20,7 @@ export default function TopBar({ applicantName, passportPhoto }: TopBarProps) {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
+      localStorage.removeItem(STORAGE_KEY);
       localStorage.setItem("isLoggedIn", "false");
       await fetch("/api/logout", {
         method: "POST",
