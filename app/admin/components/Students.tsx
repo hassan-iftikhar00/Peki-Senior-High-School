@@ -6,6 +6,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import EditStudentModal from "./EditStudentModal";
 import AddStudentModal from "./AddStudentModal";
 import BulkUploadModal from "./BulkUploadModal";
+import { saveAs } from "file-saver";
+import * as XLSX from "xlsx";
 
 interface Student {
   fullName: string;
@@ -257,6 +259,77 @@ export default function Students() {
     );
   };
 
+  const handleDownload = async () => {
+    console.log("handleDownload function called");
+    try {
+      const response = await fetch("/api/admin/students-data-fetch-all", {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch all students data");
+      }
+
+      const allStudents = await response.json();
+
+      console.log("Fetched all students:", allStudents);
+
+      // Exclude specific fields and flatten nested objects
+      const filteredStudents = allStudents.map((student: any) => {
+        const {
+          passportPhoto,
+          serialNumber,
+          pin,
+          lastUpdated,
+          uploads,
+          additionalInfo,
+          academicInfo,
+          guardianInfo,
+          classCapacity, // Remove this field
+          ...rest
+        } = student;
+
+        const flattenedStudent = {
+          ...rest,
+          presentAddress: additionalInfo?.presentAddress || "",
+          nationality: additionalInfo?.nationality || "",
+          homeTown: additionalInfo?.homeTown || "",
+          religion: additionalInfo?.religion || "",
+          previousSchool: additionalInfo?.previousSchool || "",
+          beceYear: additionalInfo?.beceYear || "",
+          coreSubjects: academicInfo?.coreSubjects.join(", ") || "",
+          electiveSubjects: academicInfo?.electiveSubjects.join(", ") || "",
+          selectedClass: academicInfo?.selectedClass || "",
+          guardianName: guardianInfo?.guardianName || "",
+          relationship: guardianInfo?.relationship || "",
+          guardianPhoneNumber: guardianInfo?.phoneNumber || "",
+          whatsappNumber: guardianInfo?.whatsappNumber || "",
+          email: guardianInfo?.email || "",
+        };
+
+        console.log("Flattened student:", flattenedStudent);
+
+        return flattenedStudent;
+      });
+
+      console.log("Filtered students for Excel:", filteredStudents);
+
+      const worksheet = XLSX.utils.json_to_sheet(filteredStudents);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
+      const excelBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+      });
+      const data = new Blob([excelBuffer], {
+        type: "application/octet-stream",
+      });
+      saveAs(data, "students_data.xlsx");
+    } catch (error) {
+      console.error("Error downloading students data:", error);
+    }
+  };
+
   if (isLoading) {
     return <div>Loading students...</div>;
   }
@@ -324,6 +397,12 @@ export default function Students() {
               onClick={() => setShowBulkUploadModal(true)}
             >
               Bulk Import (CSV)
+            </button>
+            <button
+              className="download-button not-admin"
+              onClick={handleDownload}
+            >
+              Download All Students Data
             </button>
           </div>
         </div>
