@@ -286,11 +286,13 @@ export default function Students() {
           academicInfo,
           guardianInfo,
           classCapacity, // Remove this field
+          applicationNumber, // Rename this field
           ...rest
         } = student;
 
         const flattenedStudent = {
           ...rest,
+          admissionNumber: applicationNumber, // Rename applicationNumber to admissionNumber
           presentAddress: additionalInfo?.presentAddress || "",
           nationality: additionalInfo?.nationality || "",
           homeTown: additionalInfo?.homeTown || "",

@@ -176,7 +176,7 @@ export default function AdmissionDocuments({
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${documentType}-${candidateData.indexNumber}-${candidateData.applicationNumber}.pdf`;
+      link.download = `${documentType}-${candidateData.applicationNumber}.pdf`;
 
       document.body.appendChild(link);
       link.click();

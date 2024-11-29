@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   try {
     const students = await Candidate.find(
       {},
-      "-passportPhoto -serialNumber -pin -lastUpdated -uploads -__v -createdAt -house -houseId -classCapacity -updatedAt -feepaid"
+      "-passportPhoto -serialNumber -pin -lastUpdated -uploads -__v -createdAt -house -houseId -classCapacity -updatedAt -feepaid -_id"
     )
       .populate({
         path: "additionalInfo",
