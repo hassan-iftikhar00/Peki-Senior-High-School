@@ -5,7 +5,7 @@ import { useSchoolSettings } from "@/app/contexts/SchoolSettingsContext";
 
 export default function Actions() {
   const { settings, updateSettings } = useSchoolSettings();
-  const [voucherPrice, setVoucherPrice] = useState(settings.voucherPrice || 60);
+  const [voucherPrice, setVoucherPrice] = useState(settings.voucherPrice || 80);
   const [voucherMessage, setVoucherMessage] = useState(
     settings.voucherMessage ||
       "Thank you for purchasing an admission voucher.\nYour application process can now begin."
@@ -99,7 +99,7 @@ export default function Actions() {
   };
 
   useEffect(() => {
-    setVoucherPrice(settings.voucherPrice || 60);
+    setVoucherPrice(settings.voucherPrice || 80);
     setVoucherMessage(
       settings.voucherMessage ||
         "Thank you for purchasing an admission voucher.\nYour application process can now begin."
