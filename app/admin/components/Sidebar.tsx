@@ -196,6 +196,39 @@ export default function Sidebar({
         <LogOut className="nav-icon" />
         <span>Logout</span>
       </button>
+      <div
+        style={{
+          fontSize: "0.7rem",
+          color: "#999",
+          textAlign: "center",
+          padding: "10px 0",
+          marginTop: "auto",
+          position: "absolute",
+          bottom: "10px",
+          width: "80%",
+        }}
+      >
+        <div>Developed & Designed By</div>
+        <a
+          href="https://hassaniftikhar.vercel.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: "#3498db",
+            textDecoration: "none",
+            fontWeight: "bold",
+            display: "inline-block",
+            margin: "3px 0",
+            transition: "color 0.2s ease",
+          }}
+          onMouseOver={(e) =>
+            (e.currentTarget.style.textDecoration = "underline")
+          }
+          onMouseOut={(e) => (e.currentTarget.style.textDecoration = "none")}
+        >
+          © Hassan Iftikhar
+        </a>
+      </div>
     </aside>
   );
 }
