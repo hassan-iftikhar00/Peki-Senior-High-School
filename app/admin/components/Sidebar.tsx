@@ -205,7 +205,7 @@ export default function Sidebar({
           marginTop: "auto",
           position: "absolute",
           bottom: "10px",
-          width: "80%",
+          width: "90%",
         }}
       >
         <div>Developed & Designed By</div>
